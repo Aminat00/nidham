@@ -13,8 +13,23 @@ export type Category =
   | 'wird'
   | 'task'
   | 'project'
+  | 'milestone'
   | 'step'
   | 'errand';
+
+/**
+ * Life domain a captured item belongs to — the axis the Tasks backlog groups by, and
+ * the seed for the future balance-engine. Assigned by triage. `project` is its own
+ * bucket so projects surface separately from loose tasks.
+ */
+export type Area =
+  | 'chore'
+  | 'admin'
+  | 'personal'
+  | 'self-dev'
+  | 'spiritual'
+  | 'errand'
+  | 'project';
 
 /** Prayer-anchored slot the item lives in — never floating clock-time. */
 export type Window =
@@ -42,10 +57,18 @@ export interface Item {
   /** e.g. "Reply to advisor email" */
   title: string;
   category: Category;
-  /** ISO date the item is scheduled for, e.g. "2026-07-20" */
-  day: string;
+  /**
+   * ISO date the item is scheduled for, e.g. "2026-07-20". **Optional**: an item with
+   * no `day` is *unscheduled* — it lives in the Tasks backlog and does NOT appear on
+   * Today until it's scheduled (which sets `day` = today + a `window`).
+   */
+  day?: string | null;
   /** Prayer-anchored slot it lives in. */
   window: Window;
+  /** Life domain (backlog grouping). Set by triage on captured tasks/projects. */
+  area?: Area;
+  /** Stable ordering for backlog milestones/steps (they carry no clock time). */
+  order?: number;
   /** "HH:mm" — resolved clock time, used only for ordering within a day. */
   sortTime: string;
   urgency: Urgency;
