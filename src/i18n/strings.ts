@@ -148,7 +148,7 @@ export const UI: Record<Lang, Strings> = {
     navCapture: 'Yakala',
     navTasks: 'Görevler',
     tasksTitle: 'Görevler',
-    tasksIntro: 'Yakaladığın her şey — hazır olana dek alana göre bekliyor.',
+    tasksIntro: 'Yakaladığın her şey — hazır olana dek alanına göre bekliyor.',
     projectsSection: 'Projeler',
     doToday: 'Bugün yap',
     savedToTasks: 'Görevlere kaydedildi.',
@@ -201,7 +201,7 @@ export const UI: Record<Lang, Strings> = {
     sentToToday: 'أُضيفت إلى اليوم.',
     stepsOfLabel: '{done} / {total} خطوات',
     onMilestone: 'عند {name}',
-    emptyTasks: 'لا شيء بعد — تحدّث إلى نظام لالتقاط شيء.',
+    emptyTasks: 'لا شيء بعد — تحدّث إلى نظام لتلتقط شيئًا.',
     planReady: 'إليك خطة — ابدأ بالخطوة الأولى.',
     projectCreated: 'أُضيف إلى المشاريع.',
     answerPlaceholder: 'اكتب إجابتك…',
@@ -214,7 +214,7 @@ export const UI: Record<Lang, Strings> = {
 /** Life-area labels for the Tasks backlog section headers. */
 export const AREA_LABEL: Record<Lang, Record<import('../types/item').Area, string>> = {
   en: { chore: 'Chores', admin: 'Admin', personal: 'Personal', 'self-dev': 'Self-dev', spiritual: 'Spiritual', errand: 'Errands', project: 'Projects' },
-  tr: { chore: 'Ev işleri', admin: 'İdari', personal: 'Kişisel', 'self-dev': 'Gelişim', spiritual: 'Manevi', errand: 'İşler', project: 'Projeler' },
+  tr: { chore: 'Ev işleri', admin: 'İdari', personal: 'Kişisel', 'self-dev': 'Gelişim', spiritual: 'Manevi', errand: 'Ayak işleri', project: 'Projeler' },
   ar: { chore: 'أعمال منزلية', admin: 'إداري', personal: 'شخصي', 'self-dev': 'تطوير الذات', spiritual: 'روحاني', errand: 'مشاوير', project: 'مشاريع' },
 };
 
