@@ -13,11 +13,15 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import type { Item } from '../types/item';
+import type { Item, Area, Window } from '../types/item';
 import { useI18n } from '../i18n/I18nContext';
 import { buildSeed } from '../data/seed';
 import { flattenResponse } from './flatten';
+import { flattenProjectPlan } from './flattenProject';
 import { runAgent } from '../agent/runAgent';
+import { triageCapture, type Triage } from '../agent/triage';
+import type { ProjectPlan } from '../agent/projectContract';
+import { currentStep, projectProgress, milestonesOf, stepsOf, type ProjectProgress } from '../data/projects';
 import { DEMO_NOW_ISO, DEMO_TODAY, PRAYER_TIMES } from '../data/demo';
 import { addDays } from '../utils/dates';
 import { loadState, saveState, PersistedState } from './persistence';
@@ -32,6 +36,49 @@ const MIN_THINKING_MS = 1500;
 const SEED_IDS = new Set(buildSeed('en').items.map((i) => i.id));
 
 type Phase = 'idle' | 'thinking';
+
+/** "HH:mm" prayer times used to place scheduled items in a window. */
+type Times = { fajr: string; dhuhr: string; asr: string; maghrib: string; isha: string };
+
+function hhmmToMin(hm: string): number {
+  const [h, m] = hm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function addMinutes(hhmm: string, minutes: number): string {
+  const total = Math.min(hhmmToMin(hhmm) + minutes, 23 * 60 + 59);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/** A representative clock time for a prayer window, so scheduled items order sensibly. */
+function windowBaseTime(window: Window, t: Times): string {
+  switch (window) {
+    case 'fajr': return t.fajr;
+    case 'morning': return addMinutes(t.fajr, 120);
+    case 'dhuhr': return t.dhuhr;
+    case 'afternoon': return addMinutes(t.dhuhr, 90);
+    case 'asr': return t.asr;
+    case 'maghrib': return t.maghrib;
+    case 'isha': return t.isha;
+    case 'evening': return addMinutes(t.isha, 60);
+    default: return t.dhuhr; // anytime
+  }
+}
+
+/** The prayer window active at `now` (wraps to isha overnight) — the default for "Do today". */
+function suggestCurrentWindow(t: Times, now: Date): Window {
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const seq: Array<[Window, number]> = [
+    ['fajr', hhmmToMin(t.fajr)],
+    ['dhuhr', hhmmToMin(t.dhuhr)],
+    ['asr', hhmmToMin(t.asr)],
+    ['maghrib', hhmmToMin(t.maghrib)],
+    ['isha', hhmmToMin(t.isha)],
+  ];
+  let cur: Window = 'isha';
+  for (const [w, m] of seq) if (mins >= m) cur = w;
+  return cur;
+}
 
 interface StoreValue {
   today: string;
@@ -50,6 +97,27 @@ interface StoreValue {
   pushToTomorrow: (id: string) => void;
   undoLastPush: () => void;
   canUndoPush: boolean;
+
+  /* ---- Tasks backlog + Project agent ---- */
+  /** All projects (category 'project'), newest-created not guaranteed — UI can sort. */
+  projects: Item[];
+  /** Unscheduled loose tasks grouped by life area, in a stable area order. */
+  backlogByArea: Array<{ area: Area; items: Item[] }>;
+  /** The one next action of a project (derived). */
+  currentStepOf: (projectId: string) => Item | undefined;
+  progressOf: (projectId: string) => ProjectProgress;
+  projectMilestones: (projectId: string) => Item[];
+  milestoneSteps: (milestoneId: string) => Item[];
+  /** Persist a finished plan as project → milestones → steps (backlog). Returns project id. */
+  createProject: (plan: ProjectPlan) => string;
+  /** File a loose task from a triaged capture (backlog, or Today if triaged for today). */
+  addTask: (text: string, triage: Triage) => string;
+  /** Suggested window for "Do today" right now. */
+  suggestWindow: () => Window;
+  /** Schedule an item into today, in a prayer window. */
+  scheduleToday: (id: string, window?: Window) => void;
+  /** Send an item back to the backlog (clears its day). */
+  unschedule: (id: string) => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -81,6 +149,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const langInitRef = useRef(false);
   const cloudPulledRef = useRef<string | null>(null);
   const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timesRef = useRef<Times>(PRAYER_TIMES);
+  timesRef.current = live?.times ?? PRAYER_TIMES;
 
   // Hydrate once from disk: a fresh seed overlaid with the user's saved status/day
   // and their captured items. Falls back to a plain seed if nothing is stored.
@@ -243,7 +313,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const pushToTomorrow = useCallback((id: string) => {
     setItemsById((prev) => {
       const item = prev[id];
-      if (!item) return prev;
+      if (!item || !item.day) return prev; // only scheduled items can be pushed
       return {
         ...prev,
         [id]: { ...item, status: 'pushed', day: addDays(item.day, 1) },
@@ -257,7 +327,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!pushedId) return null;
       setItemsById((prev) => {
         const item = prev[pushedId];
-        if (!item) return prev;
+        if (!item || !item.day) return prev;
         return {
           ...prev,
           [pushedId]: { ...item, status: 'pending', day: addDays(item.day, -1) },
@@ -285,6 +355,94 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const getItem = useCallback((id: string) => itemsById[id], [itemsById]);
 
+  /* -------------------------------------------------- Tasks backlog + Projects --- */
+
+  const projects = useMemo(
+    () => Object.values(itemsById).filter((i) => i.category === 'project'),
+    [itemsById],
+  );
+
+  // Unscheduled loose tasks/errands, grouped by area in a fixed display order.
+  const backlogByArea = useMemo(() => {
+    const AREA_ORDER: Area[] = ['chore', 'admin', 'personal', 'self-dev', 'spiritual', 'errand'];
+    const loose = Object.values(itemsById).filter(
+      (i) => !i.day && i.status !== 'done' && (i.category === 'task' || i.category === 'errand'),
+    );
+    const groups = new Map<Area, Item[]>();
+    for (const it of loose) {
+      const a = it.area ?? 'personal';
+      const bucket = groups.get(a) ?? [];
+      bucket.push(it);
+      groups.set(a, bucket);
+    }
+    return AREA_ORDER.filter((a) => groups.has(a)).map((a) => ({ area: a, items: groups.get(a) as Item[] }));
+  }, [itemsById]);
+
+  const currentStepOf = useCallback((projectId: string) => currentStep(projectId, itemsById), [itemsById]);
+  const progressOf = useCallback((projectId: string) => projectProgress(projectId, itemsById), [itemsById]);
+  const projectMilestones = useCallback((projectId: string) => milestonesOf(projectId, itemsById), [itemsById]);
+  const milestoneSteps = useCallback((milestoneId: string) => stepsOf(milestoneId, itemsById), [itemsById]);
+
+  const createProject = useCallback(
+    (plan: ProjectPlan): string => {
+      const seed = Date.now().toString(36);
+      const { project, items } = flattenProjectPlan(plan, { idSeed: seed });
+      upsertItems([project, ...items]);
+      return project.id;
+    },
+    [upsertItems],
+  );
+
+  const suggestWindow = useCallback((): Window => suggestCurrentWindow(timesRef.current, new Date()), []);
+
+  const addTask = useCallback(
+    (text: string, triage: Triage): string => {
+      const id = 'cap_' + Date.now().toString(36);
+      const scheduled = triage.scheduleToday;
+      const window: Window = scheduled ? suggestCurrentWindow(timesRef.current, new Date()) : 'anytime';
+      const item: Item = {
+        id,
+        title: text.trim(),
+        category: triage.area === 'errand' || triage.area === 'chore' ? 'errand' : 'task',
+        area: triage.area,
+        window,
+        sortTime: scheduled ? addMinutes(windowBaseTime(window, timesRef.current), 10) : '10:00',
+        urgency: scheduled ? 'today' : 'soon',
+        energy: 'light',
+        status: 'pending',
+        ...(scheduled ? { day: DEMO_TODAY } : {}),
+      };
+      upsertItems([item]);
+      return id;
+    },
+    [upsertItems],
+  );
+
+  const scheduleToday = useCallback((id: string, window: Window = 'anytime') => {
+    setItemsById((prev) => {
+      const it = prev[id];
+      if (!it) return prev;
+      return {
+        ...prev,
+        [id]: {
+          ...it,
+          day: DEMO_TODAY,
+          window,
+          sortTime: addMinutes(windowBaseTime(window, timesRef.current), 10),
+          status: 'pending',
+        },
+      };
+    });
+  }, []);
+
+  const unschedule = useCallback((id: string) => {
+    setItemsById((prev) => {
+      const it = prev[id];
+      if (!it) return prev;
+      return { ...prev, [id]: { ...it, day: undefined } };
+    });
+  }, []);
+
   const feed = useMemo(
     () => feedIds.map((id) => itemsById[id]).filter((i): i is Item => Boolean(i)),
     [feedIds, itemsById],
@@ -304,6 +462,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       pushToTomorrow,
       undoLastPush,
       canUndoPush: lastPushedId !== null,
+      projects,
+      backlogByArea,
+      currentStepOf,
+      progressOf,
+      projectMilestones,
+      milestoneSteps,
+      createProject,
+      addTask,
+      suggestWindow,
+      scheduleToday,
+      unschedule,
     }),
     [
       phase,
@@ -317,6 +486,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       pushToTomorrow,
       undoLastPush,
       lastPushedId,
+      projects,
+      backlogByArea,
+      currentStepOf,
+      progressOf,
+      projectMilestones,
+      milestoneSteps,
+      createProject,
+      addTask,
+      suggestWindow,
+      scheduleToday,
+      unschedule,
     ],
   );
 

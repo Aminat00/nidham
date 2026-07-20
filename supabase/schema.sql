@@ -30,12 +30,14 @@ create table if not exists public.items (
   user_id     uuid not null references auth.users (id) on delete cascade,
   id          text not null,
   title       text not null,
-  category    text not null check (category in ('prayer','tesbihat','wird','task','project','step','errand')),
-  day         date not null,
+  category    text not null check (category in ('prayer','tesbihat','wird','task','project','milestone','step','errand')),
+  day         date,                                -- null = unscheduled (Tasks backlog)
   prayer_window text not null check (prayer_window in ('fajr','morning','dhuhr','afternoon','asr','maghrib','isha','evening','anytime')),
   sort_time   text not null,                       -- "HH:mm"
   urgency     text not null check (urgency in ('now','today','soon','someday')),
   energy      text not null check (energy in ('deep','light','admin')),
+  area        text check (area in ('chore','admin','personal','self-dev','spiritual','errand','project')),
+  sort_order  int,                                 -- stable order for backlog milestones/steps
   due_date    date,
   parent_id   text,
   steps       text[],                              -- ordered child step ids (projects)

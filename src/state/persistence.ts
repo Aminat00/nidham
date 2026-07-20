@@ -13,8 +13,8 @@ const STATE_KEY = 'nidham.state.v1';
 const LANG_KEY = 'nidham.lang.v1';
 
 export interface PersistedState {
-  /** status/day for seed-owned items, keyed by id. */
-  overrides: Record<string, { status: Status; day: string }>;
+  /** status/day for seed-owned items, keyed by id. day may be null (unscheduled). */
+  overrides: Record<string, { status: Status; day?: string | null }>;
   /** User-captured items (ids not present in the base seed). */
   captures: Item[];
   /** Just-captured feed order. */

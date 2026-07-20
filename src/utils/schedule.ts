@@ -17,12 +17,12 @@ function demoWeekday(date: string, today: string): number {
   return ((DEMO_WEEKDAY_INDEX + dayDiff(today, date)) % 7 + 7) % 7;
 }
 
-function dayPart(item: Item, lang: Lang, today: string): string {
+function dayPart(day: string, lang: Lang, today: string): string {
   const s = UI[lang];
-  const diff = dayDiff(today, item.day);
+  const diff = dayDiff(today, day);
   if (diff <= 0) return s.today;
   if (diff === 1) return s.tomorrow;
-  return WEEKDAYS[lang][demoWeekday(item.day, today)];
+  return WEEKDAYS[lang][demoWeekday(day, today)];
 }
 
 /** Window phrase; `isAfter` marks prayer windows ("after Dhuhr") vs plain words. */
@@ -40,18 +40,22 @@ export function scheduleChipLabel(item: Item, lang: Lang, today: string): string
   const s = UI[lang];
   const arrow = isRTL(lang) ? '←' : '→';
 
+  // Unscheduled (backlog) items carry no day → no schedule chip.
+  if (!item.day) return '';
+  const day = item.day;
+
   // Projects show a range ("Thu → next wk").
   if (item.category === 'project') {
-    const start = WEEKDAYS[lang][demoWeekday(item.day, today)];
+    const start = WEEKDAYS[lang][demoWeekday(day, today)];
     let end = s.nextWeek;
     if (item.dueDate) {
-      const span = dayDiff(item.day, item.dueDate);
+      const span = dayDiff(day, item.dueDate);
       end = span >= 6 ? s.nextWeek : WEEKDAYS[lang][demoWeekday(item.dueDate, today)];
     }
     return `${start} ${arrow} ${end}`;
   }
 
-  const dp = dayPart(item, lang, today);
+  const dp = dayPart(day, lang, today);
   const wp = windowPart(item.window, lang);
   if (wp.isAfter) {
     const sep = lang === 'ar' ? '، ' : ', ';

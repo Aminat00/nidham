@@ -13,11 +13,13 @@ interface Row {
   id: string;
   title: string;
   category: Item['category'];
-  day: string;
+  day: string | null;
   prayer_window: Item['window'];
   sort_time: string;
   urgency: Item['urgency'];
   energy: Item['energy'];
+  area: Item['area'] | null;
+  sort_order: number | null;
   due_date: string | null;
   parent_id: string | null;
   steps: string[] | null;
@@ -34,11 +36,13 @@ function rowToItem(r: Row): Item {
     id: r.id,
     title: r.title,
     category: r.category,
-    day: r.day,
+    day: r.day ?? undefined,
     window: r.prayer_window,
     sortTime: r.sort_time,
     urgency: r.urgency,
     energy: r.energy,
+    area: r.area ?? undefined,
+    order: r.sort_order ?? undefined,
     dueDate: r.due_date,
     parentId: r.parent_id,
     steps: r.steps ?? undefined,
@@ -55,11 +59,13 @@ function itemToRow(item: Item, userId: string, feedIndex: number): Row {
     id: item.id,
     title: item.title,
     category: item.category,
-    day: item.day,
+    day: item.day ?? null,
     prayer_window: item.window,
     sort_time: item.sortTime,
     urgency: item.urgency,
     energy: item.energy,
+    area: item.area ?? null,
+    sort_order: item.order ?? null,
     due_date: item.dueDate ?? null,
     parent_id: item.parentId ?? null,
     steps: item.steps ?? null,
