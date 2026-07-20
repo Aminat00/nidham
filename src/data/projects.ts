@@ -27,10 +27,19 @@ export function stepsOf(milestoneId: string, byId: Record<string, Item>): Item[]
   return children(milestoneId, 'step', byId);
 }
 
-/** The single next action: first not-done step in the first not-fully-done milestone. */
+/**
+ * The ids to look for steps under: each milestone, or the project itself when it has no
+ * milestone layer (older/flat projects whose steps hang directly off the project).
+ */
+function stepGroups(projectId: string, byId: Record<string, Item>): string[] {
+  const milestones = milestonesOf(projectId, byId);
+  return milestones.length ? milestones.map((m) => m.id) : [projectId];
+}
+
+/** The single next action: first not-done step in the first not-fully-done group. */
 export function currentStep(projectId: string, byId: Record<string, Item>): Item | undefined {
-  for (const m of milestonesOf(projectId, byId)) {
-    const next = stepsOf(m.id, byId).find((s) => s.status !== 'done');
+  for (const gid of stepGroups(projectId, byId)) {
+    const next = stepsOf(gid, byId).find((s) => s.status !== 'done');
     if (next) return next;
   }
   return undefined;
@@ -47,8 +56,8 @@ export function projectProgress(projectId: string, byId: Record<string, Item>): 
   const milestones = milestonesOf(projectId, byId);
   let done = 0;
   let total = 0;
-  for (const m of milestones) {
-    for (const s of stepsOf(m.id, byId)) {
+  for (const gid of stepGroups(projectId, byId)) {
+    for (const s of stepsOf(gid, byId)) {
       total += 1;
       if (s.status === 'done') done += 1;
     }

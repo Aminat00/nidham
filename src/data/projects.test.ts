@@ -50,6 +50,29 @@ describe('currentStep', () => {
   });
 });
 
+describe('flat projects (steps directly under the project, no milestones)', () => {
+  function flat(): Record<string, Item> {
+    const mk = (over: Partial<Item> & { id: string; category: Item['category'] }): Item => ({
+      title: over.id, window: 'anytime', sortTime: '10:00', urgency: 'soon', energy: 'light', status: 'pending', ...over,
+    });
+    const items: Item[] = [
+      mk({ id: 'p', category: 'project' }),
+      mk({ id: 's1', category: 'step', parentId: 'p', order: 0, startHere: true }),
+      mk({ id: 's2', category: 'step', parentId: 'p', order: 1 }),
+      mk({ id: 's3', category: 'step', parentId: 'p', order: 2 }),
+    ];
+    const byId: Record<string, Item> = {};
+    for (const it of items) byId[it.id] = it;
+    return byId;
+  }
+
+  it('counts direct step children and finds the current step', () => {
+    const byId = flat();
+    expect(projectProgress('p', byId).total).toBe(3);
+    expect(currentStep('p', byId)?.id).toBe('s1');
+  });
+});
+
 describe('projectProgress', () => {
   it('counts done / total steps and names the active milestone', () => {
     const byId = tree();
