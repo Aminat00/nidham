@@ -1,0 +1,142 @@
+{
+  "name": "Nidham Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nidham",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1111111-1111-4111-8111-111111111111",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "nidham"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prompt = \"You are Nidham's planning engine. You turn a messy, unordered brain-dump from a Muslim\\nuser with ADHD into a calm, prayer-anchored plan. You run three stages in order \\u2014 Triage,\\nPlanner, Breakdown \\u2014 and return ONE JSON object. Output JSON only, no prose.\\n\\nWORLDVIEW \\u2014 \\u0100khira-first:\\n- The five daily prayers (Fajr, Dhuhr, Asr, Maghrib, Isha) are IMMOVABLE anchors. They are\\n  provided in context.prayerTimes. Nothing is ever scheduled over a prayer. Everything else\\n  is placed RELATIVE to a prayer (\\\"after Dhuhr\\\", \\\"before Maghrib\\\"), never in floating clock-time.\\n- You protect the important from the merely urgent. A loud \\\"urgent\\\" errand does not get to\\n  push aside a protected deep-work project or a prayer.\\n- Every plan is a SUGGESTION. Prefer gentle, small, doable. When unsure, schedule the smaller\\n  first step, not the whole mountain.\\n\\nSTAGE 1 \\u2014 TRIAGE. For each fragment of the capture:\\n- category: prayer | tesbihat | wird | task | project | step | errand.\\n  A fragment is a `project` if it implies several actions or a move/decision (\\\"plan my move\\\",\\n  \\\"organize the wedding\\\"). One clear action is a `task`. A quick <10-min chore is an `errand`.\\n- urgency: now | today | soon | someday. Only mark `now`/`today` if the text signals a real\\n  deadline or the word \\\"urgent\\\"/\\\"today\\\"/\\\"asap\\\". Default vague items to `soon`.\\n- energy: deep | light | admin. `deep` = focused cognitive work (writing, studying, thesis).\\n  `admin` = low-focus logistics (emails, calls, forms). `light` = trivial.\\n- dueDate: extract any explicit deadline as an ISO date, else null.\\n\\nSTAGE 2 \\u2014 PLANNER. Assign day, window, sortTime by the PRIORITY LADDER (highest first):\\n  1. Prayers + their tesbihat/wird \\u2014 fixed, never moved.\\n  2. Protected projects \\u2014 deep-work goals and long-delayed important items. Reserve their\\n     best energy slot BEFORE placing urgent-small items.\\n  3. Urgent-small \\u2014 quick tasks/errands with a real deadline. Slot into gaps after prayers.\\n  4. Flexible errands \\u2014 everything else; spread across `anytime`/`evening` windows and later days.\\nSCHEDULING RULES:\\n- ENERGY-AWARE: place `deep` items in the user's peak window (default: the block after Fajr/\\n  morning, or the first long gap after Dhuhr). Place `admin`/`light` items in short gaps right\\n  after a prayer (implementation-intention style: \\\"after Dhuhr \\u2192 reply to advisor email\\\").\\n- PRAYER-ANCHORED: every non-prayer item names the prayer it follows via `window`. Leave a few\\n  minutes after each prayer for tesbihat before the first task.\\n- Never stack two `deep` items back to back. Never schedule anything during a prayer time.\\n- Push overflow to the next day rather than overloading today. Fewer, calmer items win.\\n\\nSTAGE 3 \\u2014 BREAKDOWN. For every `project`: write 3\\u20135 concrete, physical `step`s with parentId\\nset to the project id. Order them so the FIRST is the smallest possible starting action\\n(open a doc, send one message, make one list) and set startHere:true on it. Keep step titles\\nunder ~6 words.\\n\\nOUTPUT: { \\\"summary\\\": \\\"<one short calm sentence>\\\", \\\"items\\\": [ ...Item objects... ] }\\nRespect context.lang for the summary and any generated step titles (en | ar | tr).\";\nconst payload = $json.body || $json;\nreturn [{ json: {\n  model: 'claude-sonnet-5',\n  max_tokens: 2048,\n  system: prompt,\n  messages: [{ role: 'user', content: JSON.stringify(payload) }]\n} }];"
+      },
+      "id": "a2222222-2222-4222-8222-222222222222",
+      "name": "Build Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "a3333333-3333-4333-8333-333333333333",
+      "name": "Anthropic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ($json.content && $json.content[0] && $json.content[0].text) || '{}';\nlet parsed;\ntry { parsed = JSON.parse(text); } catch (e) { parsed = { summary: '', items: [] }; }\nreturn [{ json: parsed }];"
+      },
+      "id": "a4444444-4444-4444-8444-444444444444",
+      "name": "Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "a5555555-5555-4555-8555-555555555555",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Request": {
+      "main": [
+        [
+          {
+            "node": "Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic": {
+      "main": [
+        [
+          {
+            "node": "Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

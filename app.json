@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Nidham",
+    "slug": "nidham",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#EFEBE3",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#EFEBE3"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nidham.app"
+    },
+    "android": {
+      "package": "com.nidham.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {},
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
