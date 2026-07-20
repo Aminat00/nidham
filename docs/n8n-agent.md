@@ -95,3 +95,58 @@ the workflow's HTTP node) — keep the two in sync if you edit it.
 
 Swap the Anthropic node for OpenAI/Gemini/etc. freely — the app only cares about the
 response shape, not which model produced it.
+
+## 4. The Project agent (interview → plan)
+
+The Tasks/Projects flow uses a **second** swappable module, `src/agent/runProjectAgent.ts`,
+that runs the adaptive interview. It shares the same env config (`EXPO_PUBLIC_AGENT_MODE`,
+`EXPO_PUBLIC_AGENT_KEY`) and, by default, the same webhook URL — or set a dedicated one:
+
+```
+EXPO_PUBLIC_PROJECT_AGENT_URL=https://<your-n8n-host>/webhook/nidham-project
+```
+
+Requests carry `"agent": "project"` so one webhook can branch to the right prompt.
+
+### Request (app → n8n)
+
+```jsonc
+{
+  "agent": "project",
+  "conversation": [
+    { "role": "user",  "text": "I want to start a solo AI business" },
+    { "role": "agent", "text": "What would done look like in 30 days?" },
+    { "role": "user",  "text": "one paying customer" }
+  ],
+  "context": { "now": "…", "lang": "en", "prayerTimes": { … }, "existingItems": [ … ] }
+}
+```
+
+### Response (n8n → app) — ONE of
+
+```jsonc
+{ "type": "ask", "question": "…one question in context.lang…" }
+```
+```jsonc
+{
+  "type": "plan",
+  "summary": "Here’s a plan — start with the first step.",
+  "project": {
+    "title": "Solo AI business",
+    "milestones": [
+      { "title": "Validate the idea", "steps": [
+        { "title": "Write the one-line pitch", "startHere": true },
+        { "title": "List 5 people to ask" }
+      ] },
+      { "title": "First paying customer", "steps": [ { "title": "Draft an offer" } ] }
+    ]
+  }
+}
+```
+
+Rules the prompt enforces (see `src/agent/projectSystemPrompt.ts`): ask a follow-up only
+when the goal is vague, **max 3 questions**, then emit a plan of 2–4 milestones each with
+2–4 tiny steps and **exactly one** `startHere`. The app caps the interview at 3 answers
+and, as always, falls back to a built-in interview + plan if the call fails — so the flow
+never breaks. Common n8n envelopes (`output`/`data`/`json`/`result`/array) are unwrapped
+automatically, same as the capture agent.
