@@ -13,6 +13,8 @@ import { I18nProvider } from './src/i18n/I18nContext';
 import { StoreProvider } from './src/state/store';
 import { CaptureScreen } from './src/screens/CaptureScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
+import { TasksScreen } from './src/screens/TasksScreen';
+import { ProjectDetailScreen } from './src/screens/ProjectDetailScreen';
 import { TabBar, ScreenName } from './src/components/TabBar';
 import { colors, FONT_MAP } from './src/theme/tokens';
 import { loadLang, saveLang } from './src/state/persistence';
@@ -27,20 +29,31 @@ function AppInner() {
   const insets = useSafeAreaInsets();
   const [screen, setScreen] = useState<ScreenName>('today');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [projectOpen, setProjectOpen] = useState<string | null>(null);
+
+  const openProfile = () => setProfileOpen(true);
+  const openProject = (id: string) => setProjectOpen(id);
 
   return (
     <View style={styles.root}>
       <View style={[styles.body, { paddingTop: insets.top }]}>
         {screen === 'today' ? (
-          <TodayScreen onOpenProfile={() => setProfileOpen(true)} />
+          <TodayScreen onOpenProfile={openProfile} />
+        ) : screen === 'tasks' ? (
+          <TasksScreen onOpenProfile={openProfile} onOpenProject={openProject} />
         ) : (
-          <CaptureScreen onOpenProfile={() => setProfileOpen(true)} />
+          <CaptureScreen onOpenProfile={openProfile} onOpenProject={openProject} />
         )}
       </View>
       <TabBar screen={screen} onNavigate={setScreen} />
       {profileOpen && (
         <View style={StyleSheet.absoluteFill}>
           <ProfileScreen onClose={() => setProfileOpen(false)} />
+        </View>
+      )}
+      {projectOpen && (
+        <View style={StyleSheet.absoluteFill}>
+          <ProjectDetailScreen projectId={projectOpen} onClose={() => setProjectOpen(null)} />
         </View>
       )}
       <StatusBar style="dark" />

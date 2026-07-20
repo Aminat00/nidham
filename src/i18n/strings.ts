@@ -49,6 +49,25 @@ export interface Strings {
   // nav
   navToday: string;
   navCapture: string;
+  navTasks: string;
+  // Tasks backlog
+  tasksTitle: string;
+  tasksIntro: string;
+  projectsSection: string;
+  doToday: string;
+  savedToTasks: string;
+  sentToToday: string;
+  stepsOfLabel: string; // "{done} / {total} steps"
+  onMilestone: string; // "on {name}"
+  emptyTasks: string;
+  // Project interview
+  planReady: string;
+  projectCreated: string;
+  answerPlaceholder: string;
+  talkHint: string;
+  // Do-today window picker
+  whenToday: string;
+  openLabel: string;
 }
 
 export const UI: Record<Lang, Strings> = {
@@ -81,6 +100,22 @@ export const UI: Record<Lang, Strings> = {
     undo: 'Undo',
     navToday: 'Today',
     navCapture: 'Capture',
+    navTasks: 'Tasks',
+    tasksTitle: 'Tasks',
+    tasksIntro: 'Everything you captured — parked by area until you’re ready.',
+    projectsSection: 'Projects',
+    doToday: 'Do today',
+    savedToTasks: 'Saved to Tasks.',
+    sentToToday: 'Added to today.',
+    stepsOfLabel: '{done} / {total} steps',
+    onMilestone: 'on {name}',
+    emptyTasks: 'Nothing here yet — talk to Nidham to capture something.',
+    planReady: 'Here’s a plan — start with the first step.',
+    projectCreated: 'Added to Projects.',
+    answerPlaceholder: 'Type your answer…',
+    talkHint: 'Say a task, or a big goal to break down.',
+    whenToday: 'When today?',
+    openLabel: 'Open',
   },
   tr: {
     capTitle: 'Yakala',
@@ -111,6 +146,22 @@ export const UI: Record<Lang, Strings> = {
     undo: 'Geri al',
     navToday: 'Bugün',
     navCapture: 'Yakala',
+    navTasks: 'Görevler',
+    tasksTitle: 'Görevler',
+    tasksIntro: 'Yakaladığın her şey — hazır olana dek alana göre bekliyor.',
+    projectsSection: 'Projeler',
+    doToday: 'Bugün yap',
+    savedToTasks: 'Görevlere kaydedildi.',
+    sentToToday: 'Bugüne eklendi.',
+    stepsOfLabel: '{done} / {total} adım',
+    onMilestone: '{name} aşamasında',
+    emptyTasks: 'Henüz bir şey yok — yakalamak için Nidham’la konuş.',
+    planReady: 'İşte bir plan — ilk adımla başla.',
+    projectCreated: 'Projelere eklendi.',
+    answerPlaceholder: 'Cevabını yaz…',
+    talkHint: 'Bir görev söyle ya da bölünecek büyük bir hedef.',
+    whenToday: 'Bugün ne zaman?',
+    openLabel: 'Aç',
   },
   ar: {
     capTitle: 'التقاط',
@@ -141,7 +192,30 @@ export const UI: Record<Lang, Strings> = {
     undo: 'تراجع',
     navToday: 'اليوم',
     navCapture: 'التقاط',
+    navTasks: 'المهام',
+    tasksTitle: 'المهام',
+    tasksIntro: 'كل ما التقطته — مُرتّب حسب المجال حتى تكون مستعدًّا.',
+    projectsSection: 'المشاريع',
+    doToday: 'افعلها اليوم',
+    savedToTasks: 'حُفظت في المهام.',
+    sentToToday: 'أُضيفت إلى اليوم.',
+    stepsOfLabel: '{done} / {total} خطوات',
+    onMilestone: 'عند {name}',
+    emptyTasks: 'لا شيء بعد — تحدّث إلى نظام لالتقاط شيء.',
+    planReady: 'إليك خطة — ابدأ بالخطوة الأولى.',
+    projectCreated: 'أُضيف إلى المشاريع.',
+    answerPlaceholder: 'اكتب إجابتك…',
+    talkHint: 'قل مهمة، أو هدفًا كبيرًا لتقسيمه.',
+    whenToday: 'متى اليوم؟',
+    openLabel: 'افتح',
   },
+};
+
+/** Life-area labels for the Tasks backlog section headers. */
+export const AREA_LABEL: Record<Lang, Record<import('../types/item').Area, string>> = {
+  en: { chore: 'Chores', admin: 'Admin', personal: 'Personal', 'self-dev': 'Self-dev', spiritual: 'Spiritual', errand: 'Errands', project: 'Projects' },
+  tr: { chore: 'Ev işleri', admin: 'İdari', personal: 'Kişisel', 'self-dev': 'Gelişim', spiritual: 'Manevi', errand: 'İşler', project: 'Projeler' },
+  ar: { chore: 'أعمال منزلية', admin: 'إداري', personal: 'شخصي', 'self-dev': 'تطوير الذات', spiritual: 'روحاني', errand: 'مشاوير', project: 'مشاريع' },
 };
 
 /** Fill `{name}`-style placeholders. */

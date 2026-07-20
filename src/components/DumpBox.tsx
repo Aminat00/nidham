@@ -20,7 +20,17 @@ const SpeechRecognition =
     : undefined;
 const SR_LOCALE: Record<string, string> = { en: 'en-US', tr: 'tr-TR', ar: 'ar-SA' };
 
-export function DumpBox({ onSubmit, busy }: { onSubmit: (text: string) => void; busy: boolean }) {
+export function DumpBox({
+  onSubmit,
+  busy,
+  placeholder,
+  hint,
+}: {
+  onSubmit: (text: string) => void;
+  busy: boolean;
+  placeholder?: string;
+  hint?: string;
+}) {
   const { strings, lang, isRTL } = useI18n();
   const [text, setText] = useState('');
   const [listening, setListening] = useState(false);
@@ -97,7 +107,7 @@ export function DumpBox({ onSubmit, busy }: { onSubmit: (text: string) => void; 
       <TextInput
         value={text}
         onChangeText={setText}
-        placeholder={strings.capPlaceholder}
+        placeholder={placeholder ?? strings.capPlaceholder}
         placeholderTextColor={colors.faint}
         multiline
         editable={!busy}
@@ -106,7 +116,7 @@ export function DumpBox({ onSubmit, busy }: { onSubmit: (text: string) => void; 
       />
       <View style={[styles.footer, { flexDirection: row(isRTL) }]}>
         <Text style={[styles.hint, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={1}>
-          {listening ? strings.listening : strings.capHint}
+          {listening ? strings.listening : (hint ?? strings.capHint)}
         </Text>
         <Pressable
           onPressIn={startVoice}

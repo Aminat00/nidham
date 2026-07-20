@@ -76,6 +76,16 @@ export const PersonIcon = ({ size = 20, color = colors.white, strokeWidth = 1.7 
   </Svg>
 );
 
+/** Tasks nav — checklist. */
+export const ListIcon = ({ size = 22, color = colors.muted2, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 22 22" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M4 6.5 5.4 8 8 5" />
+    <Line x1={11} y1={6.5} x2={18} y2={6.5} />
+    <Path d="M4 13.5 5.4 15 8 12" />
+    <Line x1={11} y1={13.5} x2={18} y2={13.5} />
+  </Svg>
+);
+
 /** Checkmark (12 units). */
 export const CheckIcon = ({ size = 11, color = colors.white, strokeWidth = 2.3 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 12 12" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
