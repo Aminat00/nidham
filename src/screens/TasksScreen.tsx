@@ -77,9 +77,9 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
           <Text style={[styles.sectionLabel, { textAlign: textStart(isRTL) }]}>{AREA_LABEL[lang][group.area].toUpperCase()}</Text>
           <View style={styles.group}>
             {group.items.map((it) => (
-              <Pressable key={it.id} style={[styles.taskRow, { flexDirection: row(isRTL) }]} onPress={() => onOpenTask(it.id)} accessibilityRole="button">
+              <Pressable key={it.id} style={[styles.taskRow, { flexDirection: row(isRTL) }]} onPress={() => onOpenTask(it.id)} accessible={false}>
                 <Text style={[styles.taskTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={2}>{it.title}</Text>
-                <Pressable style={styles.doToday} onPress={(e) => { e.stopPropagation(); setPickerFor(it.id); }} accessibilityRole="button">
+                <Pressable style={styles.doToday} onPress={() => { setPickerFor(it.id); }} accessibilityRole="button">
                   <Text style={styles.doTodayText}>{strings.doToday}</Text>
                 </Pressable>
               </Pressable>
