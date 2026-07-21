@@ -81,32 +81,32 @@ fails, the app falls back to a built-in plan, so it never breaks.
 ## 3. Build the flow
 
 Import [`nidham-agent.n8n.json`](./nidham-agent.n8n.json) into n8n (Workflows → Import
-from File). It contains:
+from File). **One workflow serves BOTH agents** — it branches on the request's `agent`
+field. Five nodes:
 
 1. **Webhook** (`POST /nidham`) — receives the payload.
-2. **HTTP Request → Anthropic Messages API** — sends the verbatim orchestrator system
-   prompt (Triage → Planner → Breakdown) with the payload as the user message. Add your
-   Anthropic credential to this node.
-3. **Code** — extracts the model's text and `JSON.parse`s it into `{ summary, items }`.
-4. **Respond to Webhook** — returns that JSON.
+2. **Build Request** (Code) — picks the system prompt: the **project interview** prompt
+   when `agent: "project"`, otherwise the **capture/orchestrator** prompt. Shapes the
+   Anthropic Messages body (model, system, the payload as the user message).
+3. **Anthropic** (HTTP Request → Messages API) — calls the model. **Add your Anthropic
+   credential to this node** (this is the only setup step; the key stays server-side).
+4. **Parse** (Code) — extracts the model's text and `JSON.parse`s it. Works for both
+   shapes (`{summary,items}` for capture, `{type,question|project}` for the interview);
+   on a bad shape it returns `{}` and the app falls back.
+5. **Respond to Webhook** — returns that JSON.
 
-The orchestrator system prompt lives in `src/agent/systemPrompt.ts` (also embedded in
-the workflow's HTTP node) — keep the two in sync if you edit it.
-
-Swap the Anthropic node for OpenAI/Gemini/etc. freely — the app only cares about the
-response shape, not which model produced it.
+Both prompts are embedded in the Build Request node, generated straight from
+`src/agent/systemPrompt.ts` and `src/agent/projectSystemPrompt.ts` (regenerate with
+`scratchpad/gen-workflow.js` if you edit them). Swap the Anthropic node for
+OpenAI/Gemini/etc. freely — the app only cares about the response shape.
 
 ## 4. The Project agent (interview → plan)
 
 The Tasks/Projects flow uses a **second** swappable module, `src/agent/runProjectAgent.ts`,
-that runs the adaptive interview. It shares the same env config (`EXPO_PUBLIC_AGENT_MODE`,
-`EXPO_PUBLIC_AGENT_KEY`) and, by default, the same webhook URL — or set a dedicated one:
-
-```
-EXPO_PUBLIC_PROJECT_AGENT_URL=https://<your-n8n-host>/webhook/nidham-project
-```
-
-Requests carry `"agent": "project"` so one webhook can branch to the right prompt.
+that runs the adaptive interview. It shares the same env config and **the same webhook URL**
+— the imported workflow already branches on `"agent": "project"`, so no separate URL is
+needed. (You *can* point it at a different workflow by setting
+`EXPO_PUBLIC_PROJECT_AGENT_URL` if you ever want them split.)
 
 ### Request (app → n8n)
 
