@@ -71,6 +71,17 @@ export interface Strings {
   // Voice
   micBlocked: string;
   transcribing: string;
+  // Task detail
+  taskDetailTitle: string;
+  youSaid: string;          // "You said: {text}"
+  dayLabel: string;
+  pickDate: string;
+  setExactTime: string;
+  save: string;
+  markDone: string;
+  deleteTask: string;
+  scheduledFor: string;     // "{day} · after {prayer}"
+  unscheduleLabel: string;
 }
 
 export const UI: Record<Lang, Strings> = {
@@ -121,6 +132,16 @@ export const UI: Record<Lang, Strings> = {
     openLabel: 'Open',
     micBlocked: 'Mic blocked — allow access, or type',
     transcribing: 'Transcribing…',
+    taskDetailTitle: 'Task',
+    youSaid: 'You said: {text}',
+    dayLabel: 'Day',
+    pickDate: 'Pick a date',
+    setExactTime: 'Set exact time',
+    save: 'Save',
+    markDone: 'Mark done',
+    deleteTask: 'Delete',
+    scheduledFor: '{day} · {when}',
+    unscheduleLabel: 'Unschedule',
   },
   tr: {
     capTitle: 'Yakala',
@@ -169,6 +190,16 @@ export const UI: Record<Lang, Strings> = {
     openLabel: 'Aç',
     micBlocked: 'Mikrofon engelli — izin ver ya da yaz',
     transcribing: 'Yazıya çevriliyor…',
+    taskDetailTitle: 'Görev',
+    youSaid: 'Şöyle dedin: {text}',
+    dayLabel: 'Gün',
+    pickDate: 'Tarih seç',
+    setExactTime: 'Kesin saat belirle',
+    save: 'Kaydet',
+    markDone: 'Tamamlandı',
+    deleteTask: 'Sil',
+    scheduledFor: '{day} · {when}',
+    unscheduleLabel: 'Programdan çıkar',
   },
   ar: {
     capTitle: 'التقاط',
@@ -217,6 +248,16 @@ export const UI: Record<Lang, Strings> = {
     openLabel: 'افتح',
     micBlocked: 'الميكروفون محظور — اسمح بالوصول أو اكتب',
     transcribing: 'جارٍ التفريغ…',
+    taskDetailTitle: 'مهمة',
+    youSaid: 'قلت: {text}',
+    dayLabel: 'اليوم',
+    pickDate: 'اختر تاريخًا',
+    setExactTime: 'حدّد وقتًا دقيقًا',
+    save: 'حفظ',
+    markDone: 'تمّ',
+    deleteTask: 'حذف',
+    scheduledFor: '{day} · {when}',
+    unscheduleLabel: 'إلغاء الجدولة',
   },
 };
 
