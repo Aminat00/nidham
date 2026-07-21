@@ -70,6 +70,7 @@ export interface Strings {
   openLabel: string;
   // Voice
   micBlocked: string;
+  transcribing: string;
 }
 
 export const UI: Record<Lang, Strings> = {
@@ -119,6 +120,7 @@ export const UI: Record<Lang, Strings> = {
     whenToday: 'When today?',
     openLabel: 'Open',
     micBlocked: 'Mic blocked — allow access, or type',
+    transcribing: 'Transcribing…',
   },
   tr: {
     capTitle: 'Yakala',
@@ -166,6 +168,7 @@ export const UI: Record<Lang, Strings> = {
     whenToday: 'Bugün ne zaman?',
     openLabel: 'Aç',
     micBlocked: 'Mikrofon engelli — izin ver ya da yaz',
+    transcribing: 'Yazıya çevriliyor…',
   },
   ar: {
     capTitle: 'التقاط',
@@ -213,6 +216,7 @@ export const UI: Record<Lang, Strings> = {
     whenToday: 'متى اليوم؟',
     openLabel: 'افتح',
     micBlocked: 'الميكروفون محظور — اسمح بالوصول أو اكتب',
+    transcribing: 'جارٍ التفريغ…',
   },
 };
 

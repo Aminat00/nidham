@@ -36,6 +36,8 @@ export function DumpBox({
   const [text, setText] = useState('');
   const [listening, setListening] = useState(false);
   const [micError, setMicError] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const transcribingRef = useRef(false); // synchronous guard against re-taps mid-transcription
   const recRef = useRef<{ stop: () => void } | null>(null);
   const baseRef = useRef('');
   const gotSpeechRef = useRef(false);
@@ -71,6 +73,10 @@ export function DumpBox({
   };
 
   const stopNativeRecording = async () => {
+    if (transcribingRef.current) return; // already stopping — ignore extra taps
+    transcribingRef.current = true;
+    setListening(false); // mic off immediately, so it doesn't look stuck "on"
+    setTranscribing(true);
     try {
       await recorder.stop();
       const uri = recorder.uri;
@@ -78,8 +84,10 @@ export function DumpBox({
       if (spoken) setText((p) => (p.trim() ? p.trim() + ' ' + spoken : spoken));
     } catch {
       /* ignore — the mic simply does nothing */
+    } finally {
+      transcribingRef.current = false;
+      setTranscribing(false);
     }
-    setListening(false);
   };
 
   // Web (when an STT webhook is configured): record with MediaRecorder → send to the n8n
@@ -102,10 +110,15 @@ export function DumpBox({
       rec.onstop = async () => {
         webStreamRef.current?.getTracks().forEach((t) => t.stop());
         webStreamRef.current = null;
-        const blob = new Blob(webChunksRef.current, { type: rec.mimeType || 'audio/webm' });
-        const spoken = await transcribe(blob, lang);
-        if (spoken) setText((p) => (p.trim() ? p.trim() + ' ' + spoken : spoken));
-        setListening(false);
+        try {
+          const blob = new Blob(webChunksRef.current, { type: rec.mimeType || 'audio/webm' });
+          const spoken = await transcribe(blob, lang);
+          if (spoken) setText((p) => (p.trim() ? p.trim() + ' ' + spoken : spoken));
+        } finally {
+          transcribingRef.current = false;
+          setTranscribing(false);
+          setListening(false);
+        }
       };
       rec.start();
       webRecRef.current = rec;
@@ -120,10 +133,14 @@ export function DumpBox({
     const rec = webRecRef.current;
     webRecRef.current = null;
     if (rec && rec.state !== 'inactive') {
+      transcribingRef.current = true;
+      setListening(false); // mic off immediately
+      setTranscribing(true);
       try {
-        rec.stop(); // onstop fires → transcribe → insert text
+        rec.stop(); // onstop fires → transcribe → insert text (clears transcribing)
       } catch {
-        setListening(false);
+        transcribingRef.current = false;
+        setTranscribing(false);
       }
     } else {
       setListening(false);
@@ -214,7 +231,9 @@ export function DumpBox({
   };
 
   // Tap the mic to start dictating, tap again to stop — friendlier than push-to-talk.
+  // While a clip is being transcribed, ignore taps so we never re-send the same audio.
   const toggleVoice = () => {
+    if (transcribingRef.current) return;
     if (listening) stopVoice();
     else startVoice();
   };
@@ -236,7 +255,7 @@ export function DumpBox({
           style={[styles.hint, micError && styles.hintError, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}
           numberOfLines={1}
         >
-          {micError ? strings.micBlocked : listening ? strings.listening : (hint ?? strings.capHint)}
+          {micError ? strings.micBlocked : transcribing ? strings.transcribing : listening ? strings.listening : (hint ?? strings.capHint)}
         </Text>
         <Pressable
           onPress={toggleVoice}
