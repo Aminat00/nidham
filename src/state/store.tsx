@@ -19,7 +19,6 @@ import { buildSeed } from '../data/seed';
 import { flattenResponse } from './flatten';
 import { flattenProjectPlan } from './flattenProject';
 import { runAgent } from '../agent/runAgent';
-import { triageCapture, type Triage } from '../agent/triage';
 import type { ProjectPlan } from '../agent/projectContract';
 import { currentStep, projectProgress, milestonesOf, stepsOf, type ProjectProgress } from '../data/projects';
 import { DEMO_NOW_ISO, DEMO_TODAY, PRAYER_TIMES } from '../data/demo';
@@ -69,8 +68,6 @@ interface StoreValue {
   milestoneSteps: (milestoneId: string) => Item[];
   /** Persist a finished plan as project → milestones → steps (backlog). Returns project id. */
   createProject: (plan: ProjectPlan) => string;
-  /** File a loose task from a triaged capture (backlog, or Today if triaged for today). */
-  addTask: (text: string, triage: Triage) => string;
   /** File a loose task from the capture agent's parsed result (backlog, or today if flagged). */
   addCaptureTask: (task: CaptureTask) => string;
   /** Schedule an item to any date + window (+ optional exact time). */
@@ -364,29 +361,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const suggestWindow = useCallback((): Window => suggestCurrentWindow(timesRef.current, new Date()), []);
 
-  const addTask = useCallback(
-    (text: string, triage: Triage): string => {
-      const id = 'cap_' + Date.now().toString(36);
-      const scheduled = triage.scheduleToday;
-      const window: Window = scheduled ? suggestCurrentWindow(timesRef.current, new Date()) : 'anytime';
-      const item: Item = {
-        id,
-        title: text.trim(),
-        category: triage.area === 'errand' || triage.area === 'chore' ? 'errand' : 'task',
-        area: triage.area,
-        window,
-        sortTime: scheduled ? addMinutes(windowBaseTime(window, timesRef.current), 10) : '10:00',
-        urgency: scheduled ? 'today' : 'soon',
-        energy: 'light',
-        status: 'pending',
-        ...(scheduled ? { day: DEMO_TODAY } : {}),
-      };
-      upsertItems([item]);
-      return id;
-    },
-    [upsertItems],
-  );
-
   const addCaptureTask = useCallback((task: CaptureTask): string => {
     const id = 'cap_' + Date.now().toString(36);
     const schedule = task.scheduleToday
@@ -487,7 +461,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       projectMilestones,
       milestoneSteps,
       createProject,
-      addTask,
       addCaptureTask,
       scheduleItem,
       renameItem,
@@ -516,7 +489,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       projectMilestones,
       milestoneSteps,
       createProject,
-      addTask,
       addCaptureTask,
       scheduleItem,
       renameItem,

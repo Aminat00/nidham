@@ -18,7 +18,7 @@ import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
 import { usePrayerTimes } from '../data/PrayerTimesContext';
-import { triageCapture } from '../agent/triage';
+import { runCaptureAgent } from '../agent/runCaptureAgent';
 import { runProjectAgent } from '../agent/runProjectAgent';
 import { fallbackProjectTurn } from '../agent/projectFallback';
 import type { ConversationTurn } from '../agent/projectContract';
@@ -27,7 +27,7 @@ import { DEMO_NOW_ISO, PRAYER_TIMES } from '../data/demo';
 type Entry =
   | { kind: 'user'; text: string }
   | { kind: 'agent'; text: string }
-  | { kind: 'task'; title: string; scheduled: boolean }
+  | { kind: 'task'; taskId: string; title: string; scheduled: boolean }
   | { kind: 'plan'; projectId: string; title: string; firstStep?: string };
 
 /** Max answers before we force a plan (matches the agent's own cap). */
@@ -35,7 +35,7 @@ const MAX_ANSWERS = 3;
 
 export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOpenProfile: () => void; onOpenProject: (id: string) => void; onOpenTask: (id: string) => void }) {
   const { strings, isRTL, lang } = useI18n();
-  const { addTask, createProject } = useStore();
+  const { addCaptureTask, createProject } = useStore();
   const { live } = usePrayerTimes();
   const times = live?.times ?? PRAYER_TIMES;
 
@@ -86,19 +86,45 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
       return;
     }
 
-    const tri = triageCapture(trimmed);
-    if (tri.kind === 'task') {
-      addTask(trimmed, tri);
-      setThread((t) => [...t, { kind: 'user', text: trimmed }, { kind: 'task', title: trimmed, scheduled: tri.scheduleToday }]);
-      return;
-    }
+    // First turn → the capture agent classifies (clean task / interview / rare first-turn plan).
+    void firstTurn(trimmed);
+  };
 
-    // Project → open the interview.
-    modeRef.current = 'interview';
-    const convo0: ConversationTurn[] = [{ role: 'user', text: trimmed }];
-    convoRef.current = convo0;
-    setThread((t) => [...t, { kind: 'user', text: trimmed }]);
-    void runTurn(convo0);
+  const firstTurn = async (trimmed: string) => {
+    setBusy(true);
+    try {
+      const res = await runCaptureAgent({
+        capture: trimmed,
+        context: { now: DEMO_NOW_ISO, lang, prayerTimes: times, existingItems: [] },
+      });
+
+      if (res.kind === 'task') {
+        const id = addCaptureTask(res.task);
+        setThread((t) => [
+          ...t,
+          { kind: 'user', text: trimmed },
+          { kind: 'task', taskId: id, title: res.task.title, scheduled: !!res.task.scheduleToday },
+        ]);
+      } else if (res.kind === 'ask') {
+        // The agent already returned the first interview question — do not call runProjectAgent again.
+        modeRef.current = 'interview';
+        convoRef.current = [{ role: 'user', text: trimmed }, { role: 'agent', text: res.question }];
+        setThread((t) => [...t, { kind: 'user', text: trimmed }, { kind: 'agent', text: res.question }]);
+      } else {
+        // plan — rare on the first turn, but handle it like runTurn's plan branch.
+        const id = createProject(res.project);
+        const steps = res.project.milestones[0]?.steps ?? [];
+        const first = steps.find((s) => s.startHere) ?? steps[0];
+        setThread((t) => [
+          ...t,
+          { kind: 'user', text: trimmed },
+          { kind: 'agent', text: res.summary },
+          { kind: 'plan', projectId: id, title: res.project.title, firstStep: first?.title },
+        ]);
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const interviewing = modeRef.current === 'interview';
@@ -143,13 +169,13 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
                 </View>
               </View>
             ) : e.kind === 'task' ? (
-              <View style={[styles.landed, { flexDirection: row(isRTL) }]}>
+              <Pressable style={[styles.landed, { flexDirection: row(isRTL) }]} onPress={() => onOpenTask(e.taskId)} accessibilityRole="button">
                 <View style={styles.check}><CheckIcon size={12} color={colors.white} /></View>
                 <View style={styles.landedBody}>
                   <Text style={[styles.landedTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{e.title}</Text>
                   <Text style={[styles.landedMeta, { textAlign: textStart(isRTL) }]}>{e.scheduled ? strings.sentToToday : strings.savedToTasks}</Text>
                 </View>
-              </View>
+              </Pressable>
             ) : (
               <Pressable style={styles.planCard} onPress={() => onOpenProject(e.projectId)} accessibilityRole="button">
                 <Text style={[styles.planKicker, { textAlign: textStart(isRTL) }]}>{strings.projectsSection.toUpperCase()}</Text>
