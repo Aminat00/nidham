@@ -84,6 +84,10 @@ interface StoreValue {
   unschedule: (id: string) => void;
   /** Wipe everything (local + cloud) back to a fresh seed. Keeps language + session. */
   resetData: () => void;
+  /** A project's day-sized subtasks (its step Items), in order. */
+  subtasksOf: (projectId: string) => Item[];
+  /** Every scheduled (has a `day`), not-done item — the scheduler's busy map. */
+  scheduledItems: () => Item[];
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -349,6 +353,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const projectMilestones = useCallback((projectId: string) => milestonesOf(projectId, itemsById), [itemsById]);
   const milestoneSteps = useCallback((milestoneId: string) => stepsOf(milestoneId, itemsById), [itemsById]);
 
+  const subtasksOf = useCallback((projectId: string): Item[] => {
+    const proj = itemsById[projectId];
+    if (!proj?.steps) return [];
+    return proj.steps.map((id) => itemsById[id]).filter((i): i is Item => Boolean(i));
+  }, [itemsById]);
+
+  const scheduledItems = useCallback((): Item[] =>
+    Object.values(itemsById).filter((i) => i.day && i.status !== 'done'),
+  [itemsById]);
+
   const createProject = useCallback(
     (plan: ProjectPlan): string => {
       const seed = Date.now().toString(36);
@@ -460,6 +474,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       progressOf,
       projectMilestones,
       milestoneSteps,
+      subtasksOf,
+      scheduledItems,
       createProject,
       addCaptureTask,
       scheduleItem,
@@ -488,6 +504,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       progressOf,
       projectMilestones,
       milestoneSteps,
+      subtasksOf,
+      scheduledItems,
       createProject,
       addCaptureTask,
       scheduleItem,
