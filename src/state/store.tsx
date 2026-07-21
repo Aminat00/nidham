@@ -75,6 +75,8 @@ interface StoreValue {
   addCaptureTask: (task: CaptureTask) => string;
   /** Schedule an item to any date + window (+ optional exact time). */
   scheduleItem: (id: string, input: { date: string; window?: Window; time?: string | null }) => void;
+  /** Rename an item's title (trims; ignores empty). */
+  renameItem: (id: string, title: string) => void;
   /** Delete a captured item (guarded — seed items are never removed). */
   deleteItem: (id: string) => void;
   /** Suggested window for "Do today" right now. */
@@ -402,6 +404,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const renameItem = useCallback((id: string, title: string) => {
+    const clean = title.trim();
+    if (!clean) return;
+    setItemsById((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], title: clean } } : prev));
+  }, []);
+
   const deleteItem = useCallback((id: string) => {
     if (SEED_IDS.has(id)) return;
     setItemsById((prev) => {
@@ -482,6 +490,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       addTask,
       addCaptureTask,
       scheduleItem,
+      renameItem,
       deleteItem,
       suggestWindow,
       scheduleToday,
@@ -510,6 +519,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       addTask,
       addCaptureTask,
       scheduleItem,
+      renameItem,
       deleteItem,
       suggestWindow,
       scheduleToday,
