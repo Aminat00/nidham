@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { ProfileButton } from '../components/ProfileButton';
 import { WindowPicker } from '../components/WindowPicker';
-import { amiri, colors, ff, radius, space } from '../theme/tokens';
+import { amiri, colors, ff, fs, radius, space } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
@@ -99,21 +99,21 @@ const styles = StyleSheet.create({
   headerBlock: { gap: 3, paddingHorizontal: 2 },
   headerRow: { alignItems: 'center', justifyContent: 'space-between' },
   titleRow: { alignItems: 'baseline', gap: 9 },
-  title: { fontSize: 22, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
-  titleScript: { fontFamily: amiri(), fontSize: 19, color: colors.green },
-  intro: { fontSize: 12.5, fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320 },
-  empty: { fontSize: 13.5, fontFamily: ff('500'), color: colors.muted, lineHeight: 20, paddingHorizontal: 2 },
+  title: { fontSize: fs(22), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
+  titleScript: { fontFamily: amiri(), fontSize: fs(19), color: colors.green },
+  intro: { fontSize: fs(12.5), fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320 },
+  empty: { fontSize: fs(13.5), fontFamily: ff('500'), color: colors.muted, lineHeight: 20, paddingHorizontal: 2 },
   section: { gap: 9 },
-  sectionLabel: { fontSize: 11, fontFamily: ff('700'), color: colors.muted2, letterSpacing: 0.7, paddingHorizontal: 2 },
+  sectionLabel: { fontSize: fs(11), fontFamily: ff('700'), color: colors.muted2, letterSpacing: 0.7, paddingHorizontal: 2 },
   group: { gap: 9 },
   projectCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.cardLg, paddingHorizontal: 15, paddingVertical: 14, gap: 6 },
-  projectTitle: { fontSize: 16, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 },
-  projectMeta: { fontSize: 12, fontFamily: ff('500'), color: colors.muted },
+  projectTitle: { fontSize: fs(16), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 },
+  projectMeta: { fontSize: fs(12), fontFamily: ff('500'), color: colors.muted },
   nextRow: { alignItems: 'center', gap: 8, marginTop: 2 },
-  startHereTag: { fontSize: 10, fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
-  nextText: { flex: 1, fontSize: 13.5, fontFamily: ff('600'), color: colors.ink },
+  startHereTag: { fontSize: fs(10), fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
+  nextText: { flex: 1, fontSize: fs(13.5), fontFamily: ff('600'), color: colors.ink },
   taskRow: { alignItems: 'center', justifyContent: 'space-between', gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 13 },
-  taskTitle: { flex: 1, fontSize: 14.5, fontFamily: ff('500'), color: colors.ink },
+  taskTitle: { flex: 1, fontSize: fs(14.5), fontFamily: ff('500'), color: colors.ink },
   doToday: { borderWidth: 1, borderColor: colors.green, borderRadius: radius.inner, paddingHorizontal: 12, paddingVertical: 7 },
-  doTodayText: { fontSize: 12, fontFamily: ff('700'), color: colors.green },
+  doTodayText: { fontSize: fs(12), fontFamily: ff('700'), color: colors.green },
 });

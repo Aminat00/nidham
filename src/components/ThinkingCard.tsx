@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { colors, ff } from '../theme/tokens';
+import { colors, ff, fs } from '../theme/tokens';
 import { row } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 
@@ -51,5 +51,5 @@ const styles = StyleSheet.create({
   },
   dots: { gap: 4 },
   dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.green },
-  label: { fontSize: 13, fontFamily: ff('600'), color: colors.slate2 },
+  label: { fontSize: fs(13), fontFamily: ff('600'), color: colors.slate2 },
 });

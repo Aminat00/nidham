@@ -13,7 +13,7 @@ import { ThinkingCard } from '../components/ThinkingCard';
 import { FadeInView } from '../components/FadeInView';
 import { ProfileButton } from '../components/ProfileButton';
 import { CheckIcon } from '../components/Icons';
-import { amiri, colors, ff, radius, space } from '../theme/tokens';
+import { amiri, colors, ff, fs, radius, space } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
@@ -186,27 +186,27 @@ const styles = StyleSheet.create({
   headerBlock: { paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 6 },
   headerRow: { alignItems: 'center', justifyContent: 'space-between' },
   titleRow: { alignItems: 'baseline', gap: 9 },
-  title: { fontSize: 22, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
-  titleScript: { fontFamily: amiri(), fontSize: 19, color: colors.green },
+  title: { fontSize: fs(22), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
+  titleScript: { fontFamily: amiri(), fontSize: fs(19), color: colors.green },
   scroll: { flex: 1 },
-  intro: { fontSize: 12.5, fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320, marginBottom: 4 },
+  intro: { fontSize: fs(12.5), fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320, marginBottom: 4 },
   thread: { paddingHorizontal: space.screen, paddingTop: 4, paddingBottom: 14, gap: 10 },
   inputBar: { paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 10, borderTopWidth: 1, borderTopColor: colors.hairline2, backgroundColor: colors.cream },
   bubbleRow: { width: '100%' },
   bubble: { maxWidth: '86%', paddingHorizontal: 14, paddingVertical: 11, borderRadius: radius.card },
   userBubble: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderBottomRightRadius: 6 },
   agentBubble: { backgroundColor: colors.tint, borderBottomLeftRadius: 6 },
-  bubbleText: { fontSize: 14.5, fontFamily: ff('500'), color: colors.ink, lineHeight: 21 },
+  bubbleText: { fontSize: fs(14.5), fontFamily: ff('500'), color: colors.ink, lineHeight: 21 },
   landed: { alignItems: 'center', gap: 11, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 12 },
   check: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
   landedBody: { flex: 1, gap: 2 },
-  landedTitle: { fontSize: 14, fontFamily: ff('600'), color: colors.ink },
-  landedMeta: { fontSize: 11.5, fontFamily: ff('500'), color: colors.muted },
+  landedTitle: { fontSize: fs(14), fontFamily: ff('600'), color: colors.ink },
+  landedMeta: { fontSize: fs(11.5), fontFamily: ff('500'), color: colors.muted },
   planCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.green, borderRadius: radius.cardLg, paddingHorizontal: 16, paddingVertical: 14, gap: 7 },
-  planKicker: { fontSize: 10, fontFamily: ff('700'), color: colors.green, letterSpacing: 0.6 },
-  planTitle: { fontSize: 16.5, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 },
+  planKicker: { fontSize: fs(10), fontFamily: ff('700'), color: colors.green, letterSpacing: 0.6 },
+  planTitle: { fontSize: fs(16.5), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 },
   startHereRow: { alignItems: 'center', gap: 8 },
-  startHereTag: { fontSize: 10, fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
-  startHereText: { flex: 1, fontSize: 13.5, fontFamily: ff('600'), color: colors.ink },
-  openLink: { fontSize: 12.5, fontFamily: ff('700'), color: colors.green, marginTop: 2 },
+  startHereTag: { fontSize: fs(10), fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
+  startHereText: { flex: 1, fontSize: fs(13.5), fontFamily: ff('600'), color: colors.ink },
+  openLink: { fontSize: fs(12.5), fontFamily: ff('700'), color: colors.green, marginTop: 2 },
 });

@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { amiri, colors, ff, radius } from '../theme/tokens';
+import { amiri, colors, ff, fs, radius } from '../theme/tokens';
 import { row } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { LANGS, LANG_LABEL } from '../i18n/strings';
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   seg: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   segActive: { backgroundColor: colors.green },
-  segText: { fontSize: 12 },
+  segText: { fontSize: fs(12) },
   segTextActive: { color: colors.white },
   segTextInactive: { color: colors.slate },
 });

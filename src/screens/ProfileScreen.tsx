@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { amiri, colors, ff, radius, space } from '../theme/tokens';
+import { amiri, colors, ff, fs, radius, space } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useAuth } from '../state/auth';
@@ -188,37 +188,37 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream, paddingHorizontal: space.screen },
   top: { alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 },
   close: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  closeText: { fontSize: 15, fontFamily: ff('600'), color: colors.muted },
+  closeText: { fontSize: fs(15), fontFamily: ff('600'), color: colors.muted },
   body: { paddingTop: 28, gap: 6, paddingBottom: 40 },
   brand: { alignItems: 'baseline', gap: 9, marginBottom: 18 },
-  brandName: { fontSize: 24, fontFamily: ff('800'), color: colors.ink, letterSpacing: -0.5 },
-  brandScript: { fontFamily: amiri(), fontSize: 21, color: colors.green },
-  title: { fontSize: 24, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
-  sub: { fontSize: 13.5, fontFamily: ff('500'), color: colors.muted, lineHeight: 20 },
+  brandName: { fontSize: fs(24), fontFamily: ff('800'), color: colors.ink, letterSpacing: -0.5 },
+  brandScript: { fontFamily: amiri(), fontSize: fs(21), color: colors.green },
+  title: { fontSize: fs(24), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
+  sub: { fontSize: fs(13.5), fontFamily: ff('500'), color: colors.muted, lineHeight: 20 },
   form: { gap: 12, marginTop: 20 },
   input: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.inner,
-    paddingHorizontal: 15, paddingVertical: 14, fontSize: 15, fontFamily: ff('500'), color: colors.ink,
+    paddingHorizontal: 15, paddingVertical: 14, fontSize: fs(15), fontFamily: ff('500'), color: colors.ink,
   },
-  error: { fontSize: 12.5, fontFamily: ff('600'), color: colors.rust },
-  notice: { fontSize: 12.5, fontFamily: ff('600'), color: colors.green },
+  error: { fontSize: fs(12.5), fontFamily: ff('600'), color: colors.rust },
+  notice: { fontSize: fs(12.5), fontFamily: ff('600'), color: colors.green },
   button: { backgroundColor: colors.green, borderRadius: radius.inner, paddingVertical: 15, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   buttonBusy: { opacity: 0.7 },
-  buttonText: { color: colors.white, fontSize: 15, fontFamily: ff('700') },
-  toggle: { textAlign: 'center', fontSize: 13, fontFamily: ff('600'), color: colors.muted, marginTop: 6 },
+  buttonText: { color: colors.white, fontSize: fs(15), fontFamily: ff('700') },
+  toggle: { textAlign: 'center', fontSize: fs(13), fontFamily: ff('600'), color: colors.muted, marginTop: 6 },
   account: { alignItems: 'center', gap: 12, marginTop: 20 },
   avatarBig: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
-  avatarBigText: { color: colors.white, fontFamily: ff('700'), fontSize: 30 },
+  avatarBigText: { color: colors.white, fontFamily: ff('700'), fontSize: fs(30) },
   statusRow: { alignItems: 'center', gap: 7 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.green },
-  statusText: { fontSize: 13, fontFamily: ff('700'), color: colors.green },
+  statusText: { fontSize: fs(13), fontFamily: ff('700'), color: colors.green },
   outlineButton: { marginTop: 8, borderWidth: 1, borderColor: colors.border, borderRadius: radius.inner, paddingVertical: 13, paddingHorizontal: 40, alignItems: 'center' },
-  outlineButtonText: { fontSize: 14, fontFamily: ff('700'), color: colors.rust },
+  outlineButtonText: { fontSize: fs(14), fontFamily: ff('700'), color: colors.rust },
   section: { marginTop: 34, gap: 4, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 22 },
-  sectionLabel: { fontSize: 11, fontFamily: ff('700'), color: colors.muted2, letterSpacing: 0.7 },
-  sectionSub: { fontSize: 13.5, fontFamily: ff('600'), color: colors.ink },
+  sectionLabel: { fontSize: fs(11), fontFamily: ff('700'), color: colors.muted2, letterSpacing: 0.7 },
+  sectionSub: { fontSize: fs(13.5), fontFamily: ff('600'), color: colors.ink },
   methodWrap: { marginTop: 8 },
   resetButton: { marginTop: 26, alignItems: 'center', paddingVertical: 10 },
-  resetText: { fontSize: 13, fontFamily: ff('600'), color: colors.muted2 },
+  resetText: { fontSize: fs(13), fontFamily: ff('600'), color: colors.muted2 },
   resetTextConfirm: { color: colors.rust, fontFamily: ff('700') },
 });

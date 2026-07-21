@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { colors, ff, radius } from '../theme/tokens';
+import { colors, ff, fs, radius } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nContext';
 import { digits } from '../i18n/strings';
 import { CheckIcon } from './Icons';
@@ -81,7 +81,7 @@ export function StepNum({ n, first }: { n: number; first?: boolean }) {
   const { lang } = useI18n();
   return (
     <View style={[styles.stepNum, first ? styles.stepNumFirst : styles.stepNumRest]}>
-      <Text style={{ fontSize: 11, fontFamily: ff('700'), color: first ? colors.white : colors.muted }}>{digits(n, lang)}</Text>
+      <Text style={{ fontSize: fs(11), fontFamily: ff('700'), color: first ? colors.white : colors.muted }}>{digits(n, lang)}</Text>
     </View>
   );
 }

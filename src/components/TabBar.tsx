@@ -7,7 +7,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, ff } from '../theme/tokens';
+import { colors, ff, fs } from '../theme/tokens';
 import { row } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { SunIcon, ListIcon, MicIcon } from './Icons';
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.timeline,
   },
   tab: { flex: 1, alignItems: 'center', gap: 5 },
-  label: { fontSize: 10, fontFamily: ff('600') },
+  label: { fontSize: fs(10), fontFamily: ff('600') },
   micWrap: { flex: 1, alignItems: 'center' },
   mic: {
     width: 52,
