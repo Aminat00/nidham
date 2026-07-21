@@ -13,15 +13,18 @@ interface IconProps {
   strokeWidth?: number;
 }
 
-/** Today nav — sun. */
+/** Today nav — sun (centered, 8 even rays). */
 export const SunIcon = ({ size = 22, color = colors.muted2, strokeWidth = 1.7 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 22 22" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-    <Circle cx={11} cy={13} r={3.2} />
-    <Line x1={11} y1={2.5} x2={11} y2={5} />
-    <Line x1={4.2} y1={13} x2={5.7} y2={13} />
-    <Line x1={16.3} y1={13} x2={17.8} y2={13} />
-    <Line x1={6} y1={8} x2={7.1} y2={9.1} />
-    <Line x1={16} y1={8} x2={14.9} y2={9.1} />
+    <Circle cx={11} cy={11} r={3.4} />
+    <Line x1={11} y1={2.6} x2={11} y2={4.8} />
+    <Line x1={11} y1={17.2} x2={11} y2={19.4} />
+    <Line x1={2.6} y1={11} x2={4.8} y2={11} />
+    <Line x1={17.2} y1={11} x2={19.4} y2={11} />
+    <Line x1={5.05} y1={5.05} x2={6.6} y2={6.6} />
+    <Line x1={16.95} y1={5.05} x2={15.4} y2={6.6} />
+    <Line x1={5.05} y1={16.95} x2={6.6} y2={15.4} />
+    <Line x1={16.95} y1={16.95} x2={15.4} y2={15.4} />
   </Svg>
 );
 
