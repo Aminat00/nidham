@@ -8,6 +8,7 @@
  */
 
 import type { AgentContext } from './contract';
+import type { Energy } from '../types/item';
 
 /** One line of the interview. `agent` = Nidham's question, `user` = the reply. */
 export interface ConversationTurn {
@@ -21,6 +22,10 @@ export interface ProjectPlanStep {
   startHere?: boolean;
   /** Optional meta, e.g. "~30 min". */
   note?: string;
+  /** Rough size, e.g. "~half a day", "~2h". */
+  estimate?: string;
+  /** Cognitive load — drives energy-aware scheduling. */
+  energy?: Energy;
 }
 
 export interface ProjectPlanMilestone {
