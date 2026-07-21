@@ -28,6 +28,7 @@ import { loadState, saveState, clearState, PersistedState } from './persistence'
 import { usePrayerTimes } from '../data/PrayerTimesContext';
 import { useAuth } from './auth';
 import { fetchAll, saveAll, deleteAll } from '../data/itemsRepo';
+import { addMinutes, windowBaseTime, suggestCurrentWindow, type Times } from './schedule';
 
 /** Minimum "Nidham is scheduling…" duration — keeps the moment calm, never jumpy. */
 const MIN_THINKING_MS = 1500;
@@ -36,49 +37,6 @@ const MIN_THINKING_MS = 1500;
 const SEED_IDS = new Set(buildSeed('en').items.map((i) => i.id));
 
 type Phase = 'idle' | 'thinking';
-
-/** "HH:mm" prayer times used to place scheduled items in a window. */
-type Times = { fajr: string; dhuhr: string; asr: string; maghrib: string; isha: string };
-
-function hhmmToMin(hm: string): number {
-  const [h, m] = hm.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function addMinutes(hhmm: string, minutes: number): string {
-  const total = Math.min(hhmmToMin(hhmm) + minutes, 23 * 60 + 59);
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-}
-
-/** A representative clock time for a prayer window, so scheduled items order sensibly. */
-function windowBaseTime(window: Window, t: Times): string {
-  switch (window) {
-    case 'fajr': return t.fajr;
-    case 'morning': return addMinutes(t.fajr, 120);
-    case 'dhuhr': return t.dhuhr;
-    case 'afternoon': return addMinutes(t.dhuhr, 90);
-    case 'asr': return t.asr;
-    case 'maghrib': return t.maghrib;
-    case 'isha': return t.isha;
-    case 'evening': return addMinutes(t.isha, 60);
-    default: return t.dhuhr; // anytime
-  }
-}
-
-/** The prayer window active at `now` (wraps to isha overnight) — the default for "Do today". */
-function suggestCurrentWindow(t: Times, now: Date): Window {
-  const mins = now.getHours() * 60 + now.getMinutes();
-  const seq: Array<[Window, number]> = [
-    ['fajr', hhmmToMin(t.fajr)],
-    ['dhuhr', hhmmToMin(t.dhuhr)],
-    ['asr', hhmmToMin(t.asr)],
-    ['maghrib', hhmmToMin(t.maghrib)],
-    ['isha', hhmmToMin(t.isha)],
-  ];
-  let cur: Window = 'isha';
-  for (const [w, m] of seq) if (mins >= m) cur = w;
-  return cur;
-}
 
 interface StoreValue {
   today: string;
