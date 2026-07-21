@@ -7,7 +7,7 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { DumpBox } from '../components/DumpBox';
 import { ThinkingCard } from '../components/ThinkingCard';
 import { FadeInView } from '../components/FadeInView';
@@ -105,7 +105,7 @@ export function CaptureScreen({ onOpenProfile, onOpenProject }: { onOpenProfile:
   const scrollRef = useRef<ScrollView>(null);
 
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header — fixed */}
       <View style={styles.headerBlock}>
         <View style={[styles.headerRow, { flexDirection: row(isRTL) }]}>
@@ -177,7 +177,7 @@ export function CaptureScreen({ onOpenProfile, onOpenProject }: { onOpenProfile:
           hint={strings.talkHint}
         />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
