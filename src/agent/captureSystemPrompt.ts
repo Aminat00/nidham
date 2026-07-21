@@ -24,4 +24,6 @@ If it is a project-sized goal (multiple steps / real workflow), return the FIRST
 question to begin an interview:
 {"kind":"ask","question": <one short question>}
 
-Reply in the user's language (context.lang). Output JSON only.`;
+LANGUAGE — match the user, not a setting: reply in the SAME language the user wrote
+their capture in (detect it from the text; do NOT follow a UI setting). Use context.lang
+only as a fallback when the language is genuinely unclear. Output JSON only.`;
