@@ -60,6 +60,7 @@ export interface Strings {
   stepsOfLabel: string; // "{done} / {total} steps"
   onMilestone: string; // "on {name}"
   emptyTasks: string;
+  reschedule: string;
   // Project interview
   planReady: string;
   projectCreated: string;
@@ -126,6 +127,7 @@ export const UI: Record<Lang, Strings> = {
     stepsOfLabel: '{done} / {total} steps',
     onMilestone: 'on {name}',
     emptyTasks: 'Nothing here yet — talk to Nidham to capture something.',
+    reschedule: 'Reschedule',
     planReady: 'Here’s a plan — start with the first step.',
     projectCreated: 'Added to Projects.',
     answerPlaceholder: 'Type your answer…',
@@ -186,6 +188,7 @@ export const UI: Record<Lang, Strings> = {
     stepsOfLabel: '{done} / {total} adım',
     onMilestone: '{name} aşamasında',
     emptyTasks: 'Henüz bir şey yok — yakalamak için Nidham’la konuş.',
+    reschedule: 'Yeniden planla',
     planReady: 'İşte bir plan — ilk adımla başla.',
     projectCreated: 'Projelere eklendi.',
     answerPlaceholder: 'Cevabını yaz…',
@@ -246,6 +249,7 @@ export const UI: Record<Lang, Strings> = {
     stepsOfLabel: '{done} / {total} خطوات',
     onMilestone: 'عند {name}',
     emptyTasks: 'لا شيء بعد — تحدّث إلى نظام لتلتقط شيئًا.',
+    reschedule: 'إعادة الجدولة',
     planReady: 'إليك خطة — ابدأ بالخطوة الأولى.',
     projectCreated: 'أُضيف إلى المشاريع.',
     answerPlaceholder: 'اكتب إجابتك…',
