@@ -376,11 +376,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const suggestWindow = useCallback((): Window => suggestCurrentWindow(timesRef.current, new Date()), []);
 
   const addCaptureTask = useCallback((task: CaptureTask): string => {
+    // Always file to the backlog — the Scheduler now owns all placement.
     const id = 'cap_' + Date.now().toString(36);
-    const schedule = task.scheduleToday
-      ? scheduledFields({ date: DEMO_TODAY, window: suggestCurrentWindow(timesRef.current, new Date()) }, timesRef.current)
-      : undefined;
-    upsertItems([captureTaskToItem(task, id, schedule)]);
+    upsertItems([captureTaskToItem(task, id)]);
     return id;
   }, [upsertItems]);
 

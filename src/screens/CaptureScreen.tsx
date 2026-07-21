@@ -21,7 +21,10 @@ import { usePrayerTimes } from '../data/PrayerTimesContext';
 import { runCaptureAgent } from '../agent/runCaptureAgent';
 import { runProjectAgent } from '../agent/runProjectAgent';
 import { fallbackProjectTurn } from '../agent/projectFallback';
+import { runScheduleAgent } from '../agent/runScheduleAgent';
 import type { ConversationTurn } from '../agent/projectContract';
+import type { CaptureTask } from '../agent/captureContract';
+import type { Window } from '../types/item';
 import { DEMO_NOW_ISO, PRAYER_TIMES } from '../data/demo';
 
 type Entry =
@@ -35,7 +38,7 @@ const MAX_ANSWERS = 3;
 
 export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOpenProfile: () => void; onOpenProject: (id: string) => void; onOpenTask: (id: string) => void }) {
   const { strings, isRTL, lang } = useI18n();
-  const { addCaptureTask, createProject } = useStore();
+  const { addCaptureTask, createProject, subtasksOf, scheduledItems, scheduleItem } = useStore();
   const { live } = usePrayerTimes();
   const times = live?.times ?? PRAYER_TIMES;
 
@@ -44,33 +47,69 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
   const modeRef = useRef<'idle' | 'interview'>('idle');
   const convoRef = useRef<ConversationTurn[]>([]);
 
+  /** Busy map for the schedule agent — every currently-scheduled item, day included. */
+  const buildContext = () => ({
+    now: DEMO_NOW_ISO,
+    lang,
+    prayerTimes: times,
+    existingItems: scheduledItems().map((i) => ({ id: i.id, title: i.title, window: i.window, day: i.day })),
+  });
+
+  const applyPlacements = (placements: { subtaskId: string; day: string; window: Window }[]) => {
+    for (const p of placements) scheduleItem(p.subtaskId, { date: p.day, window: p.window });
+  };
+
+  /** After a project plan lands, spread its subtasks across the near horizon. */
+  const autoScheduleProject = async (projectId: string) => {
+    const subs = subtasksOf(projectId).map((i) => ({ id: i.id, title: i.title, estimate: i.note ?? undefined, energy: i.energy }));
+    if (subs.length === 0) return;
+    const { placements } = await runScheduleAgent({ subtasks: subs, context: buildContext(), spread: true });
+    applyPlacements(placements);
+  };
+
+  // Loose task: only call the scheduler when there's a signal (timeContext or urgency now/today).
+  const scheduleLooseTask = async (taskId: string, task: CaptureTask) => {
+    const hasSignal = !!task.timeContext || task.urgency === 'now' || task.urgency === 'today';
+    if (!hasSignal) return;
+    const { placements } = await runScheduleAgent({
+      subtasks: [{ id: taskId, title: task.title, energy: task.energy, timeContext: task.timeContext, urgency: task.urgency }],
+      context: buildContext(),
+      spread: false,
+    });
+    applyPlacements(placements);
+  };
+
   const runTurn = async (convo: ConversationTurn[]) => {
     setBusy(true);
-    const payload = { conversation: convo, context: { now: DEMO_NOW_ISO, lang, prayerTimes: times, existingItems: [] } };
-    let turn = await runProjectAgent(payload);
-    const answers = convo.filter((c) => c.role === 'user').length - 1;
-    if (turn.type === 'ask' && answers >= MAX_ANSWERS) turn = fallbackProjectTurn(payload);
-    const result = turn; // const snapshot so narrowing survives into the state closures
+    try {
+      const payload = { conversation: convo, context: buildContext() };
+      let turn = await runProjectAgent(payload);
+      const answers = convo.filter((c) => c.role === 'user').length - 1;
+      if (turn.type === 'ask' && answers >= MAX_ANSWERS) turn = fallbackProjectTurn(payload);
+      const result = turn; // const snapshot so narrowing survives into the state closures
 
-    if (result.type === 'ask') {
-      const q = result.question;
-      convoRef.current = [...convo, { role: 'agent', text: q }];
-      setThread((t) => [...t, { kind: 'agent', text: q }]);
-    } else {
-      const id = createProject(result.project);
-      const steps = result.project.milestones[0]?.steps ?? [];
-      const first = steps.find((s) => s.startHere) ?? steps[0];
-      const summary = result.summary;
-      const title = result.project.title;
-      setThread((t) => [
-        ...t,
-        { kind: 'agent', text: summary },
-        { kind: 'plan', projectId: id, title, firstStep: first?.title },
-      ]);
-      modeRef.current = 'idle';
-      convoRef.current = [];
+      if (result.type === 'ask') {
+        const q = result.question;
+        convoRef.current = [...convo, { role: 'agent', text: q }];
+        setThread((t) => [...t, { kind: 'agent', text: q }]);
+      } else {
+        const id = createProject(result.project);
+        await autoScheduleProject(id);
+        const steps = result.project.milestones[0]?.steps ?? [];
+        const first = steps.find((s) => s.startHere) ?? steps[0];
+        const summary = result.summary;
+        const title = result.project.title;
+        setThread((t) => [
+          ...t,
+          { kind: 'agent', text: summary },
+          { kind: 'plan', projectId: id, title, firstStep: first?.title },
+        ]);
+        modeRef.current = 'idle';
+        convoRef.current = [];
+      }
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   };
 
   const onSubmit = (text: string) => {
@@ -95,11 +134,12 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
     try {
       const res = await runCaptureAgent({
         capture: trimmed,
-        context: { now: DEMO_NOW_ISO, lang, prayerTimes: times, existingItems: [] },
+        context: buildContext(),
       });
 
       if (res.kind === 'task') {
         const id = addCaptureTask(res.task);
+        await scheduleLooseTask(id, res.task);
         setThread((t) => [
           ...t,
           { kind: 'user', text: trimmed },
@@ -113,6 +153,7 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
       } else {
         // plan — rare on the first turn, but handle it like runTurn's plan branch.
         const id = createProject(res.project);
+        await autoScheduleProject(id);
         const steps = res.project.milestones[0]?.steps ?? [];
         const first = steps.find((s) => s.startHere) ?? steps[0];
         setThread((t) => [
