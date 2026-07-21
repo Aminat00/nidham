@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, ff, fs } from '../theme/tokens';
 import { row } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
-import { SunIcon, ListIcon, MicIcon } from './Icons';
+import { SunIcon, ListIcon, PlusIcon } from './Icons';
 
 export type ScreenName = 'today' | 'capture' | 'tasks';
 
@@ -39,7 +39,7 @@ export function TabBar({ screen, onNavigate }: { screen: ScreenName; onNavigate:
         accessibilityState={{ selected: screen === 'capture' }}
       >
         <View style={[styles.mic, screen === 'capture' && styles.micActive]}>
-          <MicIcon size={22} color={colors.white} />
+          <PlusIcon size={24} color={colors.white} />
         </View>
       </Pressable>
 
@@ -75,5 +75,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  micActive: { backgroundColor: colors.ink },
+  micActive: { backgroundColor: colors.greenDeep },
 });

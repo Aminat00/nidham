@@ -11,6 +11,7 @@ export const colors = {
   card: '#FFFFFF',
   cardAlt: '#FBF8F1', // non-first step rows
   green: '#2D5A4A', // primary — nodes, avatar, send, badges, step-1
+  greenDeep: '#22453A', // darker green — active/pressed states of the green FAB
   tint: '#E6EFEA', // green tint — chips, badges, time badge, schedule chip
   ink: '#1C1A16', // titles
   muted: '#8A8275', // subtitles, meta, secondary time

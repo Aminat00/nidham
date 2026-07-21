@@ -46,6 +46,14 @@ export const MicIcon = ({ size = 19, color = colors.green, strokeWidth = 1.7 }: 
   </Svg>
 );
 
+/** Capture nav — plus (new capture; the real mic lives in the input box). */
+export const PlusIcon = ({ size = 22, color = colors.white, strokeWidth = 2 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 22 22" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <Line x1={11} y1={5} x2={11} y2={17} />
+    <Line x1={5} y1={11} x2={17} y2={11} />
+  </Svg>
+);
+
 /** Send arrow (18 units). */
 export const ArrowRightIcon = ({ size = 18, color = colors.white, strokeWidth = 2 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
