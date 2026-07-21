@@ -77,12 +77,14 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
           <Text style={[styles.sectionLabel, { textAlign: textStart(isRTL) }]}>{AREA_LABEL[lang][group.area].toUpperCase()}</Text>
           <View style={styles.group}>
             {group.items.map((it) => (
-              <Pressable key={it.id} style={[styles.taskRow, { flexDirection: row(isRTL) }]} onPress={() => onOpenTask(it.id)} accessible={false}>
-                <Text style={[styles.taskTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={2}>{it.title}</Text>
+              <View key={it.id} style={[styles.taskRow, { flexDirection: row(isRTL) }]}>
+                <Pressable style={styles.taskTitleBtn} onPress={() => onOpenTask(it.id)} accessibilityRole="button" accessibilityLabel={it.title}>
+                  <Text style={[styles.taskTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={2}>{it.title}</Text>
+                </Pressable>
                 <Pressable style={styles.doToday} onPress={() => { setPickerFor(it.id); }} accessibilityRole="button">
                   <Text style={styles.doTodayText}>{strings.doToday}</Text>
                 </Pressable>
-              </Pressable>
+              </View>
             ))}
           </View>
         </View>
@@ -113,7 +115,8 @@ const styles = StyleSheet.create({
   startHereTag: { fontSize: fs(10), fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
   nextText: { flex: 1, fontSize: fs(13.5), fontFamily: ff('600'), color: colors.ink },
   taskRow: { alignItems: 'center', justifyContent: 'space-between', gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 13 },
-  taskTitle: { flex: 1, fontSize: fs(14.5), fontFamily: ff('500'), color: colors.ink },
+  taskTitleBtn: { flex: 1 },
+  taskTitle: { fontSize: fs(14.5), fontFamily: ff('500'), color: colors.ink },
   doToday: { borderWidth: 1, borderColor: colors.green, borderRadius: radius.inner, paddingHorizontal: 12, paddingVertical: 7 },
   doTodayText: { fontSize: fs(12), fontFamily: ff('700'), color: colors.green },
 });

@@ -55,8 +55,12 @@ export function TaskDetailScreen({ taskId, onClose }: { taskId: string; onClose:
     setDayMode(mode);
   };
 
+  const timeValid = /^([01]\d|2[0-3]):[0-5]\d$/.test(selectedTime);
+  const saveDisabled = exactOn && !timeValid;
+
   const handleSave = () => {
-    const validTime = exactOn && /^([01]\d|2[0-3]):[0-5]\d$/.test(selectedTime) ? selectedTime : null;
+    if (saveDisabled) return;
+    const validTime = exactOn && timeValid ? selectedTime : null;
     scheduleItem(taskId, { date: selectedDate, window: selectedWindow, time: validTime });
     onClose();
   };
@@ -119,11 +123,11 @@ export function TaskDetailScreen({ taskId, onClose }: { taskId: string; onClose:
             </View>
             {dayMode === 'pick' ? (
               <View style={[styles.stepperRow, { flexDirection: row(isRTL) }]}>
-                <Pressable onPress={() => setSelectedDate((d) => addDays(d, -1))} style={styles.stepBtn} accessibilityRole="button">
+                <Pressable onPress={() => setSelectedDate((d) => addDays(d, -1))} style={styles.stepBtn} accessibilityRole="button" accessibilityLabel={strings.prevDay}>
                   <Text style={styles.stepBtnText}>−1</Text>
                 </Pressable>
                 <Text style={styles.stepperDate}>{selectedDate}</Text>
-                <Pressable onPress={() => setSelectedDate((d) => addDays(d, 1))} style={styles.stepBtn} accessibilityRole="button">
+                <Pressable onPress={() => setSelectedDate((d) => addDays(d, 1))} style={styles.stepBtn} accessibilityRole="button" accessibilityLabel={strings.nextDay}>
                   <Text style={styles.stepBtnText}>+1</Text>
                 </Pressable>
               </View>
@@ -155,7 +159,7 @@ export function TaskDetailScreen({ taskId, onClose }: { taskId: string; onClose:
           </View>
 
           <View style={styles.actions}>
-            <Pressable onPress={handleSave} style={styles.saveButton} accessibilityRole="button">
+            <Pressable onPress={handleSave} disabled={saveDisabled} style={[styles.saveButton, saveDisabled && styles.saveButtonDisabled]} accessibilityRole="button">
               <Text style={styles.saveButtonText}>{strings.save}</Text>
             </Pressable>
             <Pressable onPress={handleMarkDone} style={styles.outlineButton} accessibilityRole="button">
@@ -213,6 +217,7 @@ const styles = StyleSheet.create({
   timeInput: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.inner, paddingHorizontal: 15, paddingVertical: 14, fontSize: fs(15), fontFamily: ff('600'), color: colors.ink },
   actions: { gap: 10 },
   saveButton: { backgroundColor: colors.green, borderRadius: radius.inner, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
+  saveButtonDisabled: { opacity: 0.5 },
   saveButtonText: { color: colors.white, fontSize: fs(15), fontFamily: ff('700') },
   outlineButton: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.inner, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   outlineButtonText: { fontSize: fs(14), fontFamily: ff('700'), color: colors.ink },

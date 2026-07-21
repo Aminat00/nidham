@@ -82,6 +82,8 @@ export interface Strings {
   deleteTask: string;
   scheduledFor: string;     // "{day} · after {prayer}"
   unscheduleLabel: string;
+  prevDay: string;
+  nextDay: string;
 }
 
 export const UI: Record<Lang, Strings> = {
@@ -142,6 +144,8 @@ export const UI: Record<Lang, Strings> = {
     deleteTask: 'Delete',
     scheduledFor: '{day} · {when}',
     unscheduleLabel: 'Unschedule',
+    prevDay: 'Previous day',
+    nextDay: 'Next day',
   },
   tr: {
     capTitle: 'Yakala',
@@ -200,6 +204,8 @@ export const UI: Record<Lang, Strings> = {
     deleteTask: 'Sil',
     scheduledFor: '{day} · {when}',
     unscheduleLabel: 'Programdan çıkar',
+    prevDay: 'Önceki gün',
+    nextDay: 'Sonraki gün',
   },
   ar: {
     capTitle: 'التقاط',
@@ -258,6 +264,8 @@ export const UI: Record<Lang, Strings> = {
     deleteTask: 'حذف',
     scheduledFor: '{day} · {when}',
     unscheduleLabel: 'إلغاء الجدولة',
+    prevDay: 'اليوم السابق',
+    nextDay: 'اليوم التالي',
   },
 };
 
