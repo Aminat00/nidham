@@ -21,6 +21,22 @@ export function isTranscribeConfigured(): boolean {
 }
 
 /**
+ * Whisper hallucinates on silence/unclear audio — it repeats a word or short phrase
+ * many times ("1 2 3 4 5, 1 2 3 4 5, …"). Collapse a token or a short phrase (≤6 words)
+ * that repeats 3+ times in a row down to a single occurrence, so genuine doubles
+ * ("very very") survive but runaway loops don't.
+ */
+export function collapseRepeats(input: string): string {
+  const text = (input ?? '').trim();
+  if (!text) return '';
+  // Same token repeated 3+ times: "5 5 5 5" → "5".
+  let out = text.replace(/\b(\w+)(?:[\s,]+\1\b){2,}/gi, '$1');
+  // Short phrase (2–6 words) repeated 3+ times: "1 2 3 1 2 3 1 2 3" → "1 2 3".
+  out = out.replace(/\b((?:\w+[\s,]+){1,5}\w+)(?:[\s,]+\1\b){2,}/gi, '$1');
+  return out.trim();
+}
+
+/**
  * Send recorded audio to the STT webhook and return the transcript. Accepts either a
  * file uri (native, from expo-audio) or a Blob (web, from MediaRecorder). Returns '' on any
  * failure so the caller can degrade gracefully.
@@ -44,7 +60,7 @@ export async function transcribe(audio: string | Blob, lang: Lang): Promise<stri
     const res = await fetch(STT_URL, { method: 'POST', body: form, signal: controller.signal });
     if (!res.ok) throw new Error(`stt HTTP ${res.status}`);
     const data = (await res.json()) as { text?: unknown };
-    return typeof data.text === 'string' ? data.text.trim() : '';
+    return typeof data.text === 'string' ? collapseRepeats(data.text) : '';
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn('[transcribe] failed —', err instanceof Error ? err.message : 'unknown error');
