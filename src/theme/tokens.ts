@@ -53,11 +53,16 @@ export const radius = {
 /* ------------------------------------------------------------------ fonts --- */
 
 /**
- * Latin/Turkish → Hanken Grotesk. Arabic → Amiri. `ff(weight)` returns a font
- * *stack* (Hanken first, Amiri fallback) so each glyph renders in the family that
- * owns it — Latin in Hanken, Arabic in Amiri — in every language mode. Amiri only
- * ships Regular + Bold, so weights map onto those. Custom fonts don't synthesize
- * weight, so each weight is its own pair.
+ * Latin/Turkish → Hanken Grotesk. Arabic → Amiri. Amiri only ships Regular + Bold, so
+ * weights map onto those. Custom fonts don't synthesize weight, so each weight is its
+ * own pair.
+ *
+ * `ff(weight)` renders the right family per platform:
+ * - **Web:** a font *stack* (`Hanken, Amiri`) — browsers do per-glyph fallback, so Latin
+ *   renders in Hanken and any Arabic in Amiri within the same run.
+ * - **Native:** RN accepts only ONE family name (a comma list silently falls back to the
+ *   system font), so we return Hanken alone. iOS/Android still render Arabic glyphs via
+ *   their own system fallback, and explicit Arabic flourishes use `amiri()` directly.
  */
 const HANKEN = {
   '400': 'HankenGrotesk_400Regular',
@@ -71,8 +76,9 @@ export type Weight = keyof typeof HANKEN;
 
 const amiriFor = (w: Weight): string => (w === '400' || w === '500' ? 'Amiri_400Regular' : 'Amiri_700Bold');
 
-/** Latin (Hanken) with Arabic (Amiri) fallback, at the given weight. */
-export const ff = (weight: Weight = '400'): string => `${HANKEN[weight]}, ${amiriFor(weight)}`;
+/** Latin (Hanken); web adds an Amiri fallback in the same run (native can't). */
+export const ff = (weight: Weight = '400'): string =>
+  Platform.OS === 'web' ? `${HANKEN[weight]}, ${amiriFor(weight)}` : HANKEN[weight];
 
 /** Amiri directly — for Arabic-script flourishes (نِظام, الظهر, تسبيحات, ي). */
 export const amiri = (bold = false): string => (bold ? 'Amiri_700Bold' : 'Amiri_400Regular');
