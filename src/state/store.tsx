@@ -66,8 +66,8 @@ interface StoreValue {
   progressOf: (projectId: string) => ProjectProgress;
   projectMilestones: (projectId: string) => Item[];
   milestoneSteps: (milestoneId: string) => Item[];
-  /** Persist a finished plan as project → milestones → steps (backlog). Returns project id. */
-  createProject: (plan: ProjectPlan) => string;
+  /** Persist a finished plan as project → milestones → steps (backlog). Returns project id + its subtasks (steps). */
+  createProject: (plan: ProjectPlan) => { id: string; subtasks: Item[] };
   /** File a loose task from the capture agent's parsed result (backlog, or today if flagged). */
   addCaptureTask: (task: CaptureTask) => string;
   /** Schedule an item to any date + window (+ optional exact time). */
@@ -84,6 +84,10 @@ interface StoreValue {
   unschedule: (id: string) => void;
   /** Wipe everything (local + cloud) back to a fresh seed. Keeps language + session. */
   resetData: () => void;
+  /** A project's day-sized subtasks (its step Items), in order. */
+  subtasksOf: (projectId: string) => Item[];
+  /** Every scheduled (has a `day`), not-done item — the scheduler's busy map. */
+  scheduledItems: () => Item[];
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -349,12 +353,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const projectMilestones = useCallback((projectId: string) => milestonesOf(projectId, itemsById), [itemsById]);
   const milestoneSteps = useCallback((milestoneId: string) => stepsOf(milestoneId, itemsById), [itemsById]);
 
+  const subtasksOf = useCallback((projectId: string): Item[] => {
+    const proj = itemsById[projectId];
+    if (!proj?.steps) return [];
+    return proj.steps.map((id) => itemsById[id]).filter((i): i is Item => Boolean(i));
+  }, [itemsById]);
+
+  const scheduledItems = useCallback((): Item[] =>
+    Object.values(itemsById).filter((i) => i.day && i.status !== 'done'),
+  [itemsById]);
+
   const createProject = useCallback(
-    (plan: ProjectPlan): string => {
+    (plan: ProjectPlan): { id: string; subtasks: Item[] } => {
       const seed = Date.now().toString(36);
       const { project, items } = flattenProjectPlan(plan, { idSeed: seed });
       upsertItems([project, ...items]);
-      return project.id;
+      return { id: project.id, subtasks: items.filter((i) => i.category === 'step') };
     },
     [upsertItems],
   );
@@ -362,11 +376,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const suggestWindow = useCallback((): Window => suggestCurrentWindow(timesRef.current, new Date()), []);
 
   const addCaptureTask = useCallback((task: CaptureTask): string => {
+    // Always file to the backlog — the Scheduler now owns all placement.
     const id = 'cap_' + Date.now().toString(36);
-    const schedule = task.scheduleToday
-      ? scheduledFields({ date: DEMO_TODAY, window: suggestCurrentWindow(timesRef.current, new Date()) }, timesRef.current)
-      : undefined;
-    upsertItems([captureTaskToItem(task, id, schedule)]);
+    upsertItems([captureTaskToItem(task, id)]);
     return id;
   }, [upsertItems]);
 
@@ -460,6 +472,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       progressOf,
       projectMilestones,
       milestoneSteps,
+      subtasksOf,
+      scheduledItems,
       createProject,
       addCaptureTask,
       scheduleItem,
@@ -488,6 +502,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       progressOf,
       projectMilestones,
       milestoneSteps,
+      subtasksOf,
+      scheduledItems,
       createProject,
       addCaptureTask,
       scheduleItem,

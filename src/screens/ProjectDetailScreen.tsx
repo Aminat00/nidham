@@ -15,12 +15,27 @@ import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
 import { t as fmt, digits } from '../i18n/strings';
-import { DEMO_TODAY } from '../data/demo';
+import { DEMO_TODAY, DEMO_NOW_ISO, PRAYER_TIMES } from '../data/demo';
+import { usePrayerTimes } from '../data/PrayerTimesContext';
+import { runScheduleAgent } from '../agent/runScheduleAgent';
 import type { Window } from '../types/item';
 
 export function ProjectDetailScreen({ projectId, onClose }: { projectId: string; onClose: () => void }) {
   const { strings, isRTL, lang } = useI18n();
-  const { getItem, progressOf, projectMilestones, milestoneSteps, currentStepOf, toggleDone, scheduleToday } = useStore();
+  const {
+    getItem,
+    progressOf,
+    projectMilestones,
+    milestoneSteps,
+    currentStepOf,
+    toggleDone,
+    scheduleToday,
+    subtasksOf,
+    scheduledItems,
+    scheduleItem,
+  } = useStore();
+  const { live } = usePrayerTimes();
+  const times = live?.times ?? PRAYER_TIMES;
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [pickerFor, setPickerFor] = useState<string | null>(null);
 
@@ -41,6 +56,27 @@ export function ProjectDetailScreen({ projectId, onClose }: { projectId: string;
     setPickerFor(null);
   };
 
+  /** Re-runs the scheduler over this project's subtasks, spreading them across the horizon. */
+  const reschedule = async () => {
+    const subs = subtasksOf(projectId);
+    if (subs.length === 0) return;
+    const ownIds = new Set(subs.map((s) => s.id));
+    const ctx = {
+      now: DEMO_NOW_ISO,
+      lang,
+      prayerTimes: times,
+      // Exclude the project's own subtasks — they already carry a `day` from a prior
+      // schedule, and counting them against the load cap would push them progressively
+      // later on every press.
+      existingItems: scheduledItems()
+        .filter((i) => !ownIds.has(i.id))
+        .map((i) => ({ id: i.id, title: i.title, window: i.window, day: i.day })),
+    };
+    const subtasks = subs.map((i) => ({ id: i.id, title: i.title, estimate: i.note ?? undefined, energy: i.energy }));
+    const { placements } = await runScheduleAgent({ subtasks, context: ctx, spread: true });
+    for (const p of placements) scheduleItem(p.subtaskId, { date: p.day, window: p.window });
+  };
+
   const meta =
     fmt(strings.stepsOfLabel, { done: digits(prog.done, lang), total: digits(prog.total, lang) }) +
     (prog.milestoneTitle ? ` · ${fmt(strings.onMilestone, { name: prog.milestoneTitle })}` : '');
@@ -48,6 +84,9 @@ export function ProjectDetailScreen({ projectId, onClose }: { projectId: string;
   return (
     <SafeAreaView style={styles.screen}>
       <View style={[styles.top, { flexDirection: row(isRTL) }]}>
+        <Pressable onPress={reschedule} style={styles.rescheduleBtn} accessibilityRole="button" accessibilityLabel={strings.reschedule}>
+          <Text style={styles.rescheduleText}>{strings.reschedule}</Text>
+        </Pressable>
         <Pressable onPress={onClose} hitSlop={10} style={styles.close} accessibilityRole="button" accessibilityLabel="Close">
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
@@ -112,9 +151,11 @@ export function ProjectDetailScreen({ projectId, onClose }: { projectId: string;
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream, paddingHorizontal: space.screen },
-  top: { alignItems: 'center', justifyContent: 'flex-end', paddingTop: 8 },
+  top: { alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 8 },
   close: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   closeText: { fontSize: fs(15), fontFamily: ff('600'), color: colors.muted },
+  rescheduleBtn: { borderWidth: 1, borderColor: colors.green, borderRadius: radius.inner, paddingHorizontal: 12, paddingVertical: 8 },
+  rescheduleText: { fontSize: fs(12.5), fontFamily: ff('700'), color: colors.green },
   content: { paddingTop: 12, paddingBottom: 40, gap: 16 },
   head: { gap: 5 },
   kicker: { fontSize: fs(10), fontFamily: ff('700'), color: colors.green, letterSpacing: 0.6 },

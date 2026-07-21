@@ -63,3 +63,20 @@ describe('flattenProjectPlan', () => {
     expect(a.items.map((i) => i.id)).toEqual(b.items.map((i) => i.id));
   });
 });
+
+describe('flattenProjectPlan — estimate/energy on subtasks', () => {
+  it('maps step energy and uses estimate as note when no note', () => {
+    const { items } = flattenProjectPlan(
+      { title: 'P', milestones: [{ title: 'M', steps: [
+        { title: 'Deep one', energy: 'deep', estimate: '~2h', startHere: true },
+        { title: 'Has note', energy: 'admin', estimate: '~30m', note: 'call first' },
+      ] }] },
+      { idSeed: 'x' },
+    );
+    const steps = items.filter((i) => i.category === 'step');
+    expect(steps[0].energy).toBe('deep');
+    expect(steps[0].note).toBe('~2h');       // estimate used when no note
+    expect(steps[1].energy).toBe('admin');
+    expect(steps[1].note).toBe('call first'); // explicit note wins
+  });
+});

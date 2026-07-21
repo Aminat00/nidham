@@ -19,6 +19,8 @@ export interface ExistingItemRef {
   id: string;
   title: string;
   window: string;
+  /** ISO date the item is scheduled for, so the scheduler sees the busy map. */
+  day?: string | null;
 }
 
 export interface AgentContext {
