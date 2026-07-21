@@ -38,7 +38,7 @@ const MAX_ANSWERS = 3;
 
 export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOpenProfile: () => void; onOpenProject: (id: string) => void; onOpenTask: (id: string) => void }) {
   const { strings, isRTL, lang } = useI18n();
-  const { addCaptureTask, createProject, subtasksOf, scheduledItems, scheduleItem } = useStore();
+  const { addCaptureTask, createProject, scheduledItems, scheduleItem } = useStore();
   const { live } = usePrayerTimes();
   const times = live?.times ?? PRAYER_TIMES;
 
@@ -60,8 +60,8 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
   };
 
   /** After a project plan lands, spread its subtasks across the near horizon. */
-  const autoScheduleProject = async (projectId: string) => {
-    const subs = subtasksOf(projectId).map((i) => ({ id: i.id, title: i.title, estimate: i.note ?? undefined, energy: i.energy }));
+  const autoScheduleProject = async (subtasks: import('../types/item').Item[]) => {
+    const subs = subtasks.map((i) => ({ id: i.id, title: i.title, estimate: i.note ?? undefined, energy: i.energy }));
     if (subs.length === 0) return;
     const { placements } = await runScheduleAgent({ subtasks: subs, context: buildContext(), spread: true });
     applyPlacements(placements);
@@ -93,8 +93,8 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
         convoRef.current = [...convo, { role: 'agent', text: q }];
         setThread((t) => [...t, { kind: 'agent', text: q }]);
       } else {
-        const id = createProject(result.project);
-        await autoScheduleProject(id);
+        const { id, subtasks } = createProject(result.project);
+        await autoScheduleProject(subtasks);
         const steps = result.project.milestones[0]?.steps ?? [];
         const first = steps.find((s) => s.startHere) ?? steps[0];
         const summary = result.summary;
@@ -152,8 +152,8 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
         setThread((t) => [...t, { kind: 'user', text: trimmed }, { kind: 'agent', text: res.question }]);
       } else {
         // plan — rare on the first turn, but handle it like runTurn's plan branch.
-        const id = createProject(res.project);
-        await autoScheduleProject(id);
+        const { id, subtasks } = createProject(res.project);
+        await autoScheduleProject(subtasks);
         const steps = res.project.milestones[0]?.steps ?? [];
         const first = steps.find((s) => s.startHere) ?? steps[0];
         setThread((t) => [

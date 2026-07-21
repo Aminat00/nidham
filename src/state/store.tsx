@@ -66,8 +66,8 @@ interface StoreValue {
   progressOf: (projectId: string) => ProjectProgress;
   projectMilestones: (projectId: string) => Item[];
   milestoneSteps: (milestoneId: string) => Item[];
-  /** Persist a finished plan as project → milestones → steps (backlog). Returns project id. */
-  createProject: (plan: ProjectPlan) => string;
+  /** Persist a finished plan as project → milestones → steps (backlog). Returns project id + its subtasks (steps). */
+  createProject: (plan: ProjectPlan) => { id: string; subtasks: Item[] };
   /** File a loose task from the capture agent's parsed result (backlog, or today if flagged). */
   addCaptureTask: (task: CaptureTask) => string;
   /** Schedule an item to any date + window (+ optional exact time). */
@@ -364,11 +364,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   [itemsById]);
 
   const createProject = useCallback(
-    (plan: ProjectPlan): string => {
+    (plan: ProjectPlan): { id: string; subtasks: Item[] } => {
       const seed = Date.now().toString(36);
       const { project, items } = flattenProjectPlan(plan, { idSeed: seed });
       upsertItems([project, ...items]);
-      return project.id;
+      return { id: project.id, subtasks: items.filter((i) => i.category === 'step') };
     },
     [upsertItems],
   );

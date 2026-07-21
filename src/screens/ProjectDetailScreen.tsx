@@ -58,15 +58,22 @@ export function ProjectDetailScreen({ projectId, onClose }: { projectId: string;
 
   /** Re-runs the scheduler over this project's subtasks, spreading them across the horizon. */
   const reschedule = async () => {
-    const subs = subtasksOf(projectId).map((i) => ({ id: i.id, title: i.title, estimate: i.note ?? undefined, energy: i.energy }));
+    const subs = subtasksOf(projectId);
     if (subs.length === 0) return;
+    const ownIds = new Set(subs.map((s) => s.id));
     const ctx = {
       now: DEMO_NOW_ISO,
       lang,
       prayerTimes: times,
-      existingItems: scheduledItems().map((i) => ({ id: i.id, title: i.title, window: i.window, day: i.day })),
+      // Exclude the project's own subtasks — they already carry a `day` from a prior
+      // schedule, and counting them against the load cap would push them progressively
+      // later on every press.
+      existingItems: scheduledItems()
+        .filter((i) => !ownIds.has(i.id))
+        .map((i) => ({ id: i.id, title: i.title, window: i.window, day: i.day })),
     };
-    const { placements } = await runScheduleAgent({ subtasks: subs, context: ctx, spread: true });
+    const subtasks = subs.map((i) => ({ id: i.id, title: i.title, estimate: i.note ?? undefined, energy: i.energy }));
+    const { placements } = await runScheduleAgent({ subtasks, context: ctx, spread: true });
     for (const p of placements) scheduleItem(p.subtaskId, { date: p.day, window: p.window });
   };
 
