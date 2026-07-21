@@ -63,10 +63,10 @@ export function flattenProjectPlan(plan: ProjectPlan, opts: { idSeed: string }):
         window: 'anytime',
         sortTime: '10:00',
         urgency: 'soon',
-        energy: 'light',
+        energy: s.energy ?? 'light',
         status: 'pending',
         startHere: s.startHere,
-        note: s.note,
+        note: s.note ?? s.estimate,
       });
     });
   });
