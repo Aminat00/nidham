@@ -75,6 +75,10 @@ export interface Item {
   energy: Energy;
   /** Hard deadline if any (ISO date). */
   dueDate?: string | null;
+  /** "HH:mm" exact clock time, set only when the user pins one. Overrides sortTime ordering. */
+  time?: string | null;
+  /** Quiet context: the time the user spoke at capture ("weekends or Wednesday"). Not a schedule. */
+  timeContext?: string;
   /** Set on steps → points to their project Item. */
   parentId?: string | null;
   /**
