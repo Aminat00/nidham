@@ -11,7 +11,6 @@ import { ArrowRightIcon, MicIcon } from './Icons';
 import { colors, ff, radius } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
-import { SAMPLE_CAPTURE } from '../data/samplePlan';
 import { transcribe } from '../voice/transcribe';
 
 /** Web Speech API constructor (browser only), and per-language recognition locale. */
@@ -36,6 +35,7 @@ export function DumpBox({
   const { strings, lang, isRTL } = useI18n();
   const [text, setText] = useState('');
   const [listening, setListening] = useState(false);
+  const [micError, setMicError] = useState(false);
   const recRef = useRef<{ stop: () => void } | null>(null);
   const baseRef = useRef('');
   const gotSpeechRef = useRef(false);
@@ -88,12 +88,18 @@ export function DumpBox({
   // Hold the mic to dictate: real Web Speech in the browser; expo-av + STT webhook on
   // native. If neither is available it simulates by dropping in a sample on release.
   const startVoice = () => {
+    setMicError(false);
     setListening(true);
     if (Platform.OS !== 'web') {
       void startNativeRecording();
       return;
     }
-    if (!SpeechRecognition) return;
+    // Web dictation needs a Chromium browser (Chrome/Edge) — unavailable elsewhere.
+    if (!SpeechRecognition) {
+      setListening(false);
+      setMicError(true);
+      return;
+    }
     try {
       const Ctor = SpeechRecognition as new () => {
         lang: string;
@@ -102,7 +108,7 @@ export function DumpBox({
         start: () => void;
         stop: () => void;
         onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
-        onerror: () => void;
+        onerror: (e: { error?: string }) => void;
         onend: () => void;
       };
       const rec = new Ctor();
@@ -117,15 +123,23 @@ export function DumpBox({
         if (t.trim()) gotSpeechRef.current = true;
         setText(baseRef.current + t);
       };
-      rec.onerror = () => {
+      rec.onerror = (e) => {
         setListening(false);
         recRef.current = null;
+        // Only a real permission / hardware problem is worth surfacing — not a quick
+        // release ('aborted') or silence ('no-speech').
+        const err = e?.error ?? '';
+        if (err === 'not-allowed' || err === 'service-not-allowed' || err === 'audio-capture') {
+          setMicError(true);
+        }
       };
       rec.onend = () => setListening(false);
       recRef.current = rec;
       rec.start();
     } catch {
       recRef.current = null;
+      setListening(false);
+      setMicError(true);
     }
   };
 
@@ -137,17 +151,11 @@ export function DumpBox({
     setListening(false);
     if (recRef.current) {
       try {
-        recRef.current.stop();
+        recRef.current.stop(); // onresult already captured whatever was said
       } catch {
         /* ignore */
       }
       recRef.current = null;
-      // No mic / denied / silence → fall back to the sample so the demo still lands.
-      setTimeout(() => {
-        if (!gotSpeechRef.current) setText((p) => (p.trim() ? p : SAMPLE_CAPTURE));
-      }, 300);
-    } else {
-      setText((p) => (p.trim() ? p : SAMPLE_CAPTURE));
     }
   };
 
@@ -164,8 +172,11 @@ export function DumpBox({
         textAlignVertical="top"
       />
       <View style={[styles.footer, { flexDirection: row(isRTL) }]}>
-        <Text style={[styles.hint, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={1}>
-          {listening ? strings.listening : (hint ?? strings.capHint)}
+        <Text
+          style={[styles.hint, micError && styles.hintError, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}
+          numberOfLines={1}
+        >
+          {micError ? strings.micBlocked : listening ? strings.listening : (hint ?? strings.capHint)}
         </Text>
         <Pressable
           onPressIn={startVoice}
@@ -205,6 +216,7 @@ const styles = StyleSheet.create({
   input: { minHeight: 76, fontSize: 16, fontFamily: ff('500'), color: colors.ink, lineHeight: 24 },
   footer: { alignItems: 'center', gap: 10 },
   hint: { flex: 1, fontSize: 11, fontFamily: ff('500'), color: colors.faint },
+  hintError: { color: colors.rust, fontFamily: ff('600') },
   mic: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.micBg, alignItems: 'center', justifyContent: 'center' },
   micOn: { backgroundColor: colors.green },
   send: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },

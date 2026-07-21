@@ -68,6 +68,8 @@ export interface Strings {
   // Do-today window picker
   whenToday: string;
   openLabel: string;
+  // Voice
+  micBlocked: string;
 }
 
 export const UI: Record<Lang, Strings> = {
@@ -116,6 +118,7 @@ export const UI: Record<Lang, Strings> = {
     talkHint: 'Say a task, or a big goal to break down.',
     whenToday: 'When today?',
     openLabel: 'Open',
+    micBlocked: 'Mic blocked — allow access, or type',
   },
   tr: {
     capTitle: 'Yakala',
@@ -162,6 +165,7 @@ export const UI: Record<Lang, Strings> = {
     talkHint: 'Bir görev söyle ya da bölünecek büyük bir hedef.',
     whenToday: 'Bugün ne zaman?',
     openLabel: 'Aç',
+    micBlocked: 'Mikrofon engelli — izin ver ya da yaz',
   },
   ar: {
     capTitle: 'التقاط',
@@ -208,6 +212,7 @@ export const UI: Record<Lang, Strings> = {
     talkHint: 'قل مهمة، أو هدفًا كبيرًا لتقسيمه.',
     whenToday: 'متى اليوم؟',
     openLabel: 'افتح',
+    micBlocked: 'الميكروفون محظور — اسمح بالوصول أو اكتب',
   },
 };
 
