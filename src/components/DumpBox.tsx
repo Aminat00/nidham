@@ -11,7 +11,7 @@ import { ArrowRightIcon, MicIcon } from './Icons';
 import { colors, ff, radius } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
-import { transcribe } from '../voice/transcribe';
+import { transcribe, isTranscribeConfigured } from '../voice/transcribe';
 
 /** Web Speech API constructor (browser only), and per-language recognition locale. */
 const SpeechRecognition =
@@ -40,6 +40,10 @@ export function DumpBox({
   const baseRef = useRef('');
   const gotSpeechRef = useRef(false);
   const audioRecRef = useRef<Audio.Recording | null>(null);
+  // Web MediaRecorder → Whisper (n8n).
+  const webRecRef = useRef<MediaRecorder | null>(null);
+  const webChunksRef = useRef<Blob[]>([]);
+  const webStreamRef = useRef<MediaStream | null>(null);
 
   const submit = () => {
     if (busy || !text.trim()) return;
@@ -85,8 +89,56 @@ export function DumpBox({
     setListening(false);
   };
 
-  // Hold the mic to dictate: real Web Speech in the browser; expo-av + STT webhook on
-  // native. If neither is available it simulates by dropping in a sample on release.
+  // Web (when an STT webhook is configured): record with MediaRecorder → send to the n8n
+  // Whisper workflow → drop the transcript in. This makes the STT workflow run on web too.
+  const startWebRecording = async () => {
+    try {
+      const md = navigator?.mediaDevices;
+      if (!md || typeof MediaRecorder === 'undefined') {
+        setListening(false);
+        setMicError(true);
+        return;
+      }
+      const stream = await md.getUserMedia({ audio: true });
+      webStreamRef.current = stream;
+      webChunksRef.current = [];
+      const rec = new MediaRecorder(stream);
+      rec.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) webChunksRef.current.push(e.data);
+      };
+      rec.onstop = async () => {
+        webStreamRef.current?.getTracks().forEach((t) => t.stop());
+        webStreamRef.current = null;
+        const blob = new Blob(webChunksRef.current, { type: rec.mimeType || 'audio/webm' });
+        const spoken = await transcribe(blob, lang);
+        if (spoken) setText((p) => (p.trim() ? p.trim() + ' ' + spoken : spoken));
+        setListening(false);
+      };
+      rec.start();
+      webRecRef.current = rec;
+    } catch {
+      setListening(false);
+      setMicError(true);
+      webRecRef.current = null;
+    }
+  };
+
+  const stopWebRecording = () => {
+    const rec = webRecRef.current;
+    webRecRef.current = null;
+    if (rec && rec.state !== 'inactive') {
+      try {
+        rec.stop(); // onstop fires → transcribe → insert text
+      } catch {
+        setListening(false);
+      }
+    } else {
+      setListening(false);
+    }
+  };
+
+  // Dictation: on web, use the n8n Whisper workflow if configured, else the browser's
+  // built-in Web Speech; on native, expo-av + the STT webhook.
   const startVoice = () => {
     setMicError(false);
     setListening(true);
@@ -94,7 +146,12 @@ export function DumpBox({
       void startNativeRecording();
       return;
     }
-    // Web dictation needs a Chromium browser (Chrome/Edge) — unavailable elsewhere.
+    // Prefer the configured Whisper webhook so the user's own workflow runs.
+    if (isTranscribeConfigured()) {
+      void startWebRecording();
+      return;
+    }
+    // Fallback: browser dictation (Chromium only).
     if (!SpeechRecognition) {
       setListening(false);
       setMicError(true);
@@ -148,6 +205,10 @@ export function DumpBox({
       void stopNativeRecording();
       return;
     }
+    if (isTranscribeConfigured()) {
+      stopWebRecording();
+      return;
+    }
     setListening(false);
     if (recRef.current) {
       try {
@@ -157,6 +218,12 @@ export function DumpBox({
       }
       recRef.current = null;
     }
+  };
+
+  // Tap the mic to start dictating, tap again to stop — friendlier than push-to-talk.
+  const toggleVoice = () => {
+    if (listening) stopVoice();
+    else startVoice();
   };
 
   return (
@@ -179,11 +246,11 @@ export function DumpBox({
           {micError ? strings.micBlocked : listening ? strings.listening : (hint ?? strings.capHint)}
         </Text>
         <Pressable
-          onPressIn={startVoice}
-          onPressOut={stopVoice}
+          onPress={toggleVoice}
           style={[styles.mic, listening && styles.micOn]}
           accessibilityRole="button"
           accessibilityLabel={strings.listening}
+          accessibilityState={{ selected: listening }}
         >
           <MicIcon size={19} color={listening ? colors.white : colors.green} />
         </Pressable>

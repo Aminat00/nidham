@@ -21,18 +21,24 @@ export function isTranscribeConfigured(): boolean {
 }
 
 /**
- * Send a recorded audio file (by uri) to the STT webhook and return the transcript.
- * Returns '' on any failure so the caller can degrade gracefully.
+ * Send recorded audio to the STT webhook and return the transcript. Accepts either a
+ * file uri (native, from expo-av) or a Blob (web, from MediaRecorder). Returns '' on any
+ * failure so the caller can degrade gracefully.
  */
-export async function transcribe(audioUri: string, lang: Lang): Promise<string> {
-  if (!isTranscribeConfigured() || !audioUri) return '';
+export async function transcribe(audio: string | Blob, lang: Lang): Promise<string> {
+  if (!isTranscribeConfigured() || !audio) return '';
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const form = new FormData();
-    // On native, RN's FormData accepts a { uri, name, type } file part.
-    form.append('file', { uri: audioUri, name: 'audio.m4a', type: 'audio/m4a' } as unknown as Blob);
+    if (typeof audio === 'string') {
+      // Native: RN's FormData accepts a { uri, name, type } file part.
+      form.append('file', { uri: audio, name: 'audio.m4a', type: 'audio/m4a' } as unknown as Blob);
+    } else {
+      // Web: a real Blob from MediaRecorder.
+      form.append('file', audio, 'audio.webm');
+    }
     form.append('lang', lang);
 
     const res = await fetch(STT_URL, { method: 'POST', body: form, signal: controller.signal });
