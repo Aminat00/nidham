@@ -15,6 +15,7 @@ import { CaptureScreen } from './src/screens/CaptureScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
 import { TasksScreen } from './src/screens/TasksScreen';
 import { ProjectDetailScreen } from './src/screens/ProjectDetailScreen';
+import { TaskDetailScreen } from './src/screens/TaskDetailScreen';
 import { TabBar, ScreenName } from './src/components/TabBar';
 import { colors, FONT_MAP } from './src/theme/tokens';
 import { loadLang, saveLang } from './src/state/persistence';
@@ -30,9 +31,11 @@ function AppInner() {
   const [screen, setScreen] = useState<ScreenName>('today');
   const [profileOpen, setProfileOpen] = useState(false);
   const [projectOpen, setProjectOpen] = useState<string | null>(null);
+  const [taskOpen, setTaskOpen] = useState<string | null>(null);
 
   const openProfile = () => setProfileOpen(true);
   const openProject = (id: string) => setProjectOpen(id);
+  const openTask = (id: string) => setTaskOpen(id);
 
   return (
     <View style={styles.root}>
@@ -40,9 +43,9 @@ function AppInner() {
         {screen === 'today' ? (
           <TodayScreen onOpenProfile={openProfile} />
         ) : screen === 'tasks' ? (
-          <TasksScreen onOpenProfile={openProfile} onOpenProject={openProject} />
+          <TasksScreen onOpenProfile={openProfile} onOpenProject={openProject} onOpenTask={openTask} />
         ) : (
-          <CaptureScreen onOpenProfile={openProfile} onOpenProject={openProject} />
+          <CaptureScreen onOpenProfile={openProfile} onOpenProject={openProject} onOpenTask={openTask} />
         )}
       </View>
       <TabBar screen={screen} onNavigate={setScreen} />
@@ -54,6 +57,11 @@ function AppInner() {
       {projectOpen && (
         <View style={StyleSheet.absoluteFill}>
           <ProjectDetailScreen projectId={projectOpen} onClose={() => setProjectOpen(null)} />
+        </View>
+      )}
+      {taskOpen && (
+        <View style={StyleSheet.absoluteFill}>
+          <TaskDetailScreen taskId={taskOpen} onClose={() => setTaskOpen(null)} />
         </View>
       )}
       <StatusBar style="dark" />

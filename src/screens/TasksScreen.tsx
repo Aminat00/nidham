@@ -16,7 +16,7 @@ import { useStore } from '../state/store';
 import { AREA_LABEL, t as fmt, digits } from '../i18n/strings';
 import type { Window } from '../types/item';
 
-export function TasksScreen({ onOpenProfile, onOpenProject }: { onOpenProfile: () => void; onOpenProject: (id: string) => void }) {
+export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOpenProfile: () => void; onOpenProject: (id: string) => void; onOpenTask: (id: string) => void }) {
   const { strings, isRTL, lang } = useI18n();
   const { projects, backlogByArea, progressOf, currentStepOf, scheduleToday } = useStore();
   const [pickerFor, setPickerFor] = useState<string | null>(null);
@@ -77,12 +77,12 @@ export function TasksScreen({ onOpenProfile, onOpenProject }: { onOpenProfile: (
           <Text style={[styles.sectionLabel, { textAlign: textStart(isRTL) }]}>{AREA_LABEL[lang][group.area].toUpperCase()}</Text>
           <View style={styles.group}>
             {group.items.map((it) => (
-              <View key={it.id} style={[styles.taskRow, { flexDirection: row(isRTL) }]}>
+              <Pressable key={it.id} style={[styles.taskRow, { flexDirection: row(isRTL) }]} onPress={() => onOpenTask(it.id)} accessibilityRole="button">
                 <Text style={[styles.taskTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={2}>{it.title}</Text>
-                <Pressable style={styles.doToday} onPress={() => setPickerFor(it.id)} accessibilityRole="button">
+                <Pressable style={styles.doToday} onPress={(e) => { e.stopPropagation(); setPickerFor(it.id); }} accessibilityRole="button">
                   <Text style={styles.doTodayText}>{strings.doToday}</Text>
                 </Pressable>
-              </View>
+              </Pressable>
             ))}
           </View>
         </View>

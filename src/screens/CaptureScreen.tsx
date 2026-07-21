@@ -33,7 +33,7 @@ type Entry =
 /** Max answers before we force a plan (matches the agent's own cap). */
 const MAX_ANSWERS = 3;
 
-export function CaptureScreen({ onOpenProfile, onOpenProject }: { onOpenProfile: () => void; onOpenProject: (id: string) => void }) {
+export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOpenProfile: () => void; onOpenProject: (id: string) => void; onOpenTask: (id: string) => void }) {
   const { strings, isRTL, lang } = useI18n();
   const { addTask, createProject } = useStore();
   const { live } = usePrayerTimes();
