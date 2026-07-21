@@ -13,6 +13,7 @@ import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useAuth } from '../state/auth';
 import { useSettings } from '../state/settings';
+import { useStore } from '../state/store';
 import { LanguageToggle } from '../components/LanguageToggle';
 import { Dropdown } from '../components/Dropdown';
 import { CALC_METHODS } from '../data/prayerTimes';
@@ -29,6 +30,7 @@ const T: Record<Lang, Record<string, string>> = {
     signedIn: 'Signed in', syncing: 'Your day syncs to the cloud.', signOut: 'Sign out',
     localOnly: 'Cloud sync isn’t set up — Nidham is running locally on this device.',
     prayerTimes: 'Prayer times', method: 'Calculation method',
+    reset: 'Reset all data', resetConfirm: 'Tap again to start fresh',
   },
   tr: {
     profile: 'Profil', close: 'Kapat',
@@ -40,6 +42,7 @@ const T: Record<Lang, Record<string, string>> = {
     signedIn: 'Giriş yapıldı', syncing: 'Günün buluta eşitleniyor.', signOut: 'Çıkış yap',
     localOnly: 'Bulut eşitleme kurulu değil — Nidham bu cihazda yerel çalışıyor.',
     prayerTimes: 'Namaz vakitleri', method: 'Hesaplama yöntemi',
+    reset: 'Tüm verileri sıfırla', resetConfirm: 'Sıfırdan başlamak için tekrar dokun',
   },
   ar: {
     profile: 'الملف', close: 'إغلاق',
@@ -51,6 +54,7 @@ const T: Record<Lang, Record<string, string>> = {
     signedIn: 'تم تسجيل الدخول', syncing: 'يومك يُزامَن مع السحابة.', signOut: 'تسجيل الخروج',
     localOnly: 'المزامنة السحابية غير مُهيّأة — يعمل نِظام محليًا على هذا الجهاز.',
     prayerTimes: 'أوقات الصلاة', method: 'طريقة الحساب',
+    reset: 'إعادة تعيين كل البيانات', resetConfirm: 'اضغط مرة أخرى للبدء من جديد',
   },
 };
 
@@ -58,7 +62,19 @@ export function ProfileScreen({ onClose }: { onClose: () => void }) {
   const { lang, isRTL } = useI18n();
   const { configured, session, user, signIn, signUp, signOut } = useAuth();
   const { method, setMethod } = useSettings();
+  const { resetData } = useStore();
   const t = T[lang];
+
+  const [confirmReset, setConfirmReset] = useState(false);
+  const doReset = () => {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      return;
+    }
+    resetData();
+    setConfirmReset(false);
+    onClose();
+  };
 
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [name, setName] = useState('');
@@ -156,6 +172,13 @@ export function ProfileScreen({ onClose }: { onClose: () => void }) {
             <Dropdown value={method} options={CALC_METHODS} onSelect={setMethod} />
           </View>
         </View>
+
+        {/* Reset — clean slate (two-tap confirm) */}
+        <Pressable onPress={doReset} style={styles.resetButton} accessibilityRole="button">
+          <Text style={[styles.resetText, confirmReset && styles.resetTextConfirm]}>
+            {confirmReset ? t.resetConfirm : t.reset}
+          </Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -195,4 +218,7 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 11, fontFamily: ff('700'), color: colors.muted2, letterSpacing: 0.7 },
   sectionSub: { fontSize: 13.5, fontFamily: ff('600'), color: colors.ink },
   methodWrap: { marginTop: 8 },
+  resetButton: { marginTop: 26, alignItems: 'center', paddingVertical: 10 },
+  resetText: { fontSize: 13, fontFamily: ff('600'), color: colors.muted2 },
+  resetTextConfirm: { color: colors.rust, fontFamily: ff('700') },
 });

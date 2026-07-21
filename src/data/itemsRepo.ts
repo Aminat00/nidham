@@ -97,6 +97,16 @@ export async function fetchAll(userId: string): Promise<RepoState | null> {
   return { items, feedIds };
 }
 
+/** Delete every one of the user's rows (a clean-slate reset). Best-effort. */
+export async function deleteAll(userId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('items').delete().eq('user_id', userId);
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.warn('[itemsRepo] deleteAll failed —', error.message);
+  }
+}
+
 /** Upsert the full item set + feed order for the user. Best-effort. */
 export async function saveAll(userId: string, items: Item[], feedIds: string[]): Promise<void> {
   if (!supabase) return;

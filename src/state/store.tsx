@@ -24,10 +24,10 @@ import type { ProjectPlan } from '../agent/projectContract';
 import { currentStep, projectProgress, milestonesOf, stepsOf, type ProjectProgress } from '../data/projects';
 import { DEMO_NOW_ISO, DEMO_TODAY, PRAYER_TIMES } from '../data/demo';
 import { addDays } from '../utils/dates';
-import { loadState, saveState, PersistedState } from './persistence';
+import { loadState, saveState, clearState, PersistedState } from './persistence';
 import { usePrayerTimes } from '../data/PrayerTimesContext';
 import { useAuth } from './auth';
-import { fetchAll, saveAll } from '../data/itemsRepo';
+import { fetchAll, saveAll, deleteAll } from '../data/itemsRepo';
 
 /** Minimum "Nidham is scheduling…" duration — keeps the moment calm, never jumpy. */
 const MIN_THINKING_MS = 1500;
@@ -118,6 +118,8 @@ interface StoreValue {
   scheduleToday: (id: string, window?: Window) => void;
   /** Send an item back to the backlog (clears its day). */
   unschedule: (id: string) => void;
+  /** Wipe everything (local + cloud) back to a fresh seed. Keeps language + session. */
+  resetData: () => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -443,6 +445,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // Clean slate: rebuild the fresh seed in memory, clear local cache, and wipe the
+  // user's cloud rows. Keeps language + session. The save effect re-persists the seed.
+  const resetData = useCallback(() => {
+    const { items, capturedIds } = buildSeed(lang);
+    const byId: Record<string, Item> = {};
+    for (const it of items) byId[it.id] = it;
+    setItemsById(byId);
+    setFeedIds(capturedIds);
+    setSummary(null);
+    setPhase('idle');
+    setLastPushedId(null);
+    clearState();
+    if (userId) deleteAll(userId);
+  }, [lang, userId]);
+
   const feed = useMemo(
     () => feedIds.map((id) => itemsById[id]).filter((i): i is Item => Boolean(i)),
     [feedIds, itemsById],
@@ -473,6 +490,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       suggestWindow,
       scheduleToday,
       unschedule,
+      resetData,
     }),
     [
       phase,
@@ -497,6 +515,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       suggestWindow,
       scheduleToday,
       unschedule,
+      resetData,
     ],
   );
 

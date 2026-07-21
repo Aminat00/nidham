@@ -55,6 +55,15 @@ export async function saveLang(lang: Lang): Promise<void> {
   }
 }
 
+/** Wipe the item state (seed overrides + captures + feed) but keep language + session. */
+export async function clearState(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(STATE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function clearAll(): Promise<void> {
   try {
     await AsyncStorage.multiRemove([STATE_KEY, LANG_KEY]);
