@@ -185,7 +185,7 @@ Add to `src/state/schedule.test.ts`:
 import { localSchedule, parseDayHint } from './schedule';
 import type { SchedulableSubtask } from '../agent/scheduleContract';
 
-const NOW = '2026-07-21T09:00:00+03:00'; // 2026-07-21 is a Monday
+const NOW = '2026-07-21T09:00:00+03:00'; // 2026-07-21 is a Tuesday (real calendar)
 const ctx = (existing: Array<{ day?: string | null }> = []) => ({
   now: NOW, lang: 'en' as const,
   prayerTimes: { fajr: '03:51', dhuhr: '13:15', asr: '17:13', maghrib: '20:39', isha: '22:21' },
@@ -196,11 +196,11 @@ const subs = (n: number, extra: Partial<SchedulableSubtask> = {}): SchedulableSu
 
 describe('parseDayHint', () => {
   it('resolves a weekday name to the nearest such day (today or later)', () => {
-    expect(parseDayHint('go Wednesday', '2026-07-21')).toBe('2026-07-23'); // Mon → Wed
+    expect(parseDayHint('go Wednesday', '2026-07-21')).toBe('2026-07-22'); // Tue → Wed
   });
   it('handles tomorrow / weekend / today, and null when no hint', () => {
     expect(parseDayHint('tomorrow', '2026-07-21')).toBe('2026-07-22');
-    expect(parseDayHint('on weekends', '2026-07-21')).toBe('2026-07-26'); // Saturday
+    expect(parseDayHint('on weekends', '2026-07-21')).toBe('2026-07-25'); // Saturday
     expect(parseDayHint('today please', '2026-07-21')).toBe('2026-07-21');
     expect(parseDayHint('buy a bag', '2026-07-21')).toBeNull();
     expect(parseDayHint(undefined, '2026-07-21')).toBeNull();
@@ -233,7 +233,7 @@ describe('localSchedule — on-signal (loose)', () => {
       false,
     );
     expect(p.find((x) => x.subtaskId === 'a')?.day).toBe('2026-07-21');
-    expect(p.find((x) => x.subtaskId === 'b')?.day).toBe('2026-07-23'); // next Wednesday
+    expect(p.find((x) => x.subtaskId === 'b')?.day).toBe('2026-07-22'); // next Wednesday
     expect(p.find((x) => x.subtaskId === 'c')).toBeUndefined(); // omitted (no signal)
   });
 });
