@@ -4,6 +4,7 @@
  */
 
 import { Platform, TextStyle, ViewStyle } from 'react-native';
+import { scaleFont } from './fontScale';
 
 export const colors = {
   cream: '#F5F2EB', // app / screen background
@@ -83,6 +84,9 @@ export const ff = (weight: Weight = '400'): string =>
 /** Amiri directly — for Arabic-script flourishes (نِظام, الظهر, تسبيحات, ي). */
 export const amiri = (bold = false): string => (bold ? 'Amiri_700Bold' : 'Amiri_400Regular');
 
+/** Font size, scaled up on native only (web = design surface, unscaled). */
+export const fs = (size: number): number => scaleFont(size, Platform.OS === 'web');
+
 /** Families to preload (see App.tsx useFonts). */
 export const FONT_MAP = {
   HankenGrotesk_400Regular: require('@expo-google-fonts/hanken-grotesk/400Regular/HankenGrotesk_400Regular.ttf'),
@@ -97,14 +101,14 @@ export const FONT_MAP = {
 /* ------------------------------------------------------------------- type --- */
 
 export const type = {
-  screenTitle: { fontSize: 22, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 } as TextStyle,
-  greeting: { fontSize: 21, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 } as TextStyle,
-  cardTitle: { fontSize: 14.5, fontFamily: ff('700'), color: colors.ink } as TextStyle,
-  body: { fontSize: 13, fontFamily: ff('600'), color: colors.ink } as TextStyle,
-  meta: { fontSize: 12, fontFamily: ff('500'), color: colors.muted } as TextStyle,
-  label: { fontSize: 10, fontFamily: ff('600'), color: colors.muted2, letterSpacing: 0.6 } as TextStyle,
-  pill: { fontSize: 12, fontFamily: ff('700') } as TextStyle,
-  time: { fontSize: 12, fontFamily: ff('600'), color: colors.muted } as TextStyle,
+  screenTitle: { fontSize: fs(22), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 } as TextStyle,
+  greeting: { fontSize: fs(21), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 } as TextStyle,
+  cardTitle: { fontSize: fs(14.5), fontFamily: ff('700'), color: colors.ink } as TextStyle,
+  body: { fontSize: fs(13), fontFamily: ff('600'), color: colors.ink } as TextStyle,
+  meta: { fontSize: fs(12), fontFamily: ff('500'), color: colors.muted } as TextStyle,
+  label: { fontSize: fs(10), fontFamily: ff('600'), color: colors.muted2, letterSpacing: 0.6 } as TextStyle,
+  pill: { fontSize: fs(12), fontFamily: ff('700') } as TextStyle,
+  time: { fontSize: fs(12), fontFamily: ff('600'), color: colors.muted } as TextStyle,
 } as const;
 
 /* ----------------------------------------------------------------- shadow --- */

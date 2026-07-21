@@ -19,7 +19,6 @@ import { buildSeed } from '../data/seed';
 import { flattenResponse } from './flatten';
 import { flattenProjectPlan } from './flattenProject';
 import { runAgent } from '../agent/runAgent';
-import { triageCapture, type Triage } from '../agent/triage';
 import type { ProjectPlan } from '../agent/projectContract';
 import { currentStep, projectProgress, milestonesOf, stepsOf, type ProjectProgress } from '../data/projects';
 import { DEMO_NOW_ISO, DEMO_TODAY, PRAYER_TIMES } from '../data/demo';
@@ -28,6 +27,8 @@ import { loadState, saveState, clearState, PersistedState } from './persistence'
 import { usePrayerTimes } from '../data/PrayerTimesContext';
 import { useAuth } from './auth';
 import { fetchAll, saveAll, deleteAll } from '../data/itemsRepo';
+import { addMinutes, windowBaseTime, suggestCurrentWindow, scheduledFields, captureTaskToItem, type Times } from './schedule';
+import type { CaptureTask } from '../agent/captureContract';
 
 /** Minimum "Nidham is scheduling…" duration — keeps the moment calm, never jumpy. */
 const MIN_THINKING_MS = 1500;
@@ -36,49 +37,6 @@ const MIN_THINKING_MS = 1500;
 const SEED_IDS = new Set(buildSeed('en').items.map((i) => i.id));
 
 type Phase = 'idle' | 'thinking';
-
-/** "HH:mm" prayer times used to place scheduled items in a window. */
-type Times = { fajr: string; dhuhr: string; asr: string; maghrib: string; isha: string };
-
-function hhmmToMin(hm: string): number {
-  const [h, m] = hm.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function addMinutes(hhmm: string, minutes: number): string {
-  const total = Math.min(hhmmToMin(hhmm) + minutes, 23 * 60 + 59);
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-}
-
-/** A representative clock time for a prayer window, so scheduled items order sensibly. */
-function windowBaseTime(window: Window, t: Times): string {
-  switch (window) {
-    case 'fajr': return t.fajr;
-    case 'morning': return addMinutes(t.fajr, 120);
-    case 'dhuhr': return t.dhuhr;
-    case 'afternoon': return addMinutes(t.dhuhr, 90);
-    case 'asr': return t.asr;
-    case 'maghrib': return t.maghrib;
-    case 'isha': return t.isha;
-    case 'evening': return addMinutes(t.isha, 60);
-    default: return t.dhuhr; // anytime
-  }
-}
-
-/** The prayer window active at `now` (wraps to isha overnight) — the default for "Do today". */
-function suggestCurrentWindow(t: Times, now: Date): Window {
-  const mins = now.getHours() * 60 + now.getMinutes();
-  const seq: Array<[Window, number]> = [
-    ['fajr', hhmmToMin(t.fajr)],
-    ['dhuhr', hhmmToMin(t.dhuhr)],
-    ['asr', hhmmToMin(t.asr)],
-    ['maghrib', hhmmToMin(t.maghrib)],
-    ['isha', hhmmToMin(t.isha)],
-  ];
-  let cur: Window = 'isha';
-  for (const [w, m] of seq) if (mins >= m) cur = w;
-  return cur;
-}
 
 interface StoreValue {
   today: string;
@@ -110,8 +68,14 @@ interface StoreValue {
   milestoneSteps: (milestoneId: string) => Item[];
   /** Persist a finished plan as project → milestones → steps (backlog). Returns project id. */
   createProject: (plan: ProjectPlan) => string;
-  /** File a loose task from a triaged capture (backlog, or Today if triaged for today). */
-  addTask: (text: string, triage: Triage) => string;
+  /** File a loose task from the capture agent's parsed result (backlog, or today if flagged). */
+  addCaptureTask: (task: CaptureTask) => string;
+  /** Schedule an item to any date + window (+ optional exact time). */
+  scheduleItem: (id: string, input: { date: string; window?: Window; time?: string | null }) => void;
+  /** Rename an item's title (trims; ignores empty). */
+  renameItem: (id: string, title: string) => void;
+  /** Delete a captured item (guarded — seed items are never removed). */
+  deleteItem: (id: string) => void;
   /** Suggested window for "Do today" right now. */
   suggestWindow: () => Window;
   /** Schedule an item into today, in a prayer window. */
@@ -397,28 +361,39 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const suggestWindow = useCallback((): Window => suggestCurrentWindow(timesRef.current, new Date()), []);
 
-  const addTask = useCallback(
-    (text: string, triage: Triage): string => {
-      const id = 'cap_' + Date.now().toString(36);
-      const scheduled = triage.scheduleToday;
-      const window: Window = scheduled ? suggestCurrentWindow(timesRef.current, new Date()) : 'anytime';
-      const item: Item = {
-        id,
-        title: text.trim(),
-        category: triage.area === 'errand' || triage.area === 'chore' ? 'errand' : 'task',
-        area: triage.area,
-        window,
-        sortTime: scheduled ? addMinutes(windowBaseTime(window, timesRef.current), 10) : '10:00',
-        urgency: scheduled ? 'today' : 'soon',
-        energy: 'light',
-        status: 'pending',
-        ...(scheduled ? { day: DEMO_TODAY } : {}),
-      };
-      upsertItems([item]);
-      return id;
-    },
-    [upsertItems],
-  );
+  const addCaptureTask = useCallback((task: CaptureTask): string => {
+    const id = 'cap_' + Date.now().toString(36);
+    const schedule = task.scheduleToday
+      ? scheduledFields({ date: DEMO_TODAY, window: suggestCurrentWindow(timesRef.current, new Date()) }, timesRef.current)
+      : undefined;
+    upsertItems([captureTaskToItem(task, id, schedule)]);
+    return id;
+  }, [upsertItems]);
+
+  const scheduleItem = useCallback((id: string, input: { date: string; window?: Window; time?: string | null }) => {
+    setItemsById((prev) => {
+      const it = prev[id];
+      if (!it) return prev;
+      return { ...prev, [id]: { ...it, ...scheduledFields(input, timesRef.current) } };
+    });
+  }, []);
+
+  const renameItem = useCallback((id: string, title: string) => {
+    const clean = title.trim();
+    if (!clean) return;
+    setItemsById((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], title: clean } } : prev));
+  }, []);
+
+  const deleteItem = useCallback((id: string) => {
+    if (SEED_IDS.has(id)) return;
+    setItemsById((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setFeedIds((prev) => prev.filter((f) => f !== id));
+  }, []);
 
   const scheduleToday = useCallback((id: string, window: Window = 'anytime') => {
     setItemsById((prev) => {
@@ -441,7 +416,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setItemsById((prev) => {
       const it = prev[id];
       if (!it) return prev;
-      return { ...prev, [id]: { ...it, day: undefined } };
+      return { ...prev, [id]: { ...it, day: undefined, time: null } };
     });
   }, []);
 
@@ -486,7 +461,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       projectMilestones,
       milestoneSteps,
       createProject,
-      addTask,
+      addCaptureTask,
+      scheduleItem,
+      renameItem,
+      deleteItem,
       suggestWindow,
       scheduleToday,
       unschedule,
@@ -511,7 +489,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       projectMilestones,
       milestoneSteps,
       createProject,
-      addTask,
+      addCaptureTask,
+      scheduleItem,
+      renameItem,
+      deleteItem,
       suggestWindow,
       scheduleToday,
       unschedule,

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors, ff } from '../theme/tokens';
+import { colors, ff, fs } from '../theme/tokens';
 import { useAuth } from '../state/auth';
 import { PersonIcon } from './Icons';
 
@@ -23,5 +23,5 @@ export function ProfileButton({ onPress }: { onPress: () => void }) {
 
 const styles = StyleSheet.create({
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
-  initial: { color: colors.white, fontFamily: ff('700'), fontSize: 17 },
+  initial: { color: colors.white, fontFamily: ff('700'), fontSize: fs(17) },
 });

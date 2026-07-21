@@ -8,7 +8,7 @@ import React, { useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync } from 'expo-audio';
 import { ArrowRightIcon, MicIcon } from './Icons';
-import { colors, ff, radius } from '../theme/tokens';
+import { colors, ff, fs, radius } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { transcribe, isTranscribeConfigured } from '../voice/transcribe';
@@ -292,9 +292,9 @@ const styles = StyleSheet.create({
       default: {},
     }),
   },
-  input: { minHeight: 76, fontSize: 16, fontFamily: ff('500'), color: colors.ink, lineHeight: 24 },
+  input: { minHeight: 76, fontSize: fs(16), fontFamily: ff('500'), color: colors.ink, lineHeight: 24 },
   footer: { alignItems: 'center', gap: 10 },
-  hint: { flex: 1, fontSize: 11, fontFamily: ff('500'), color: colors.faint },
+  hint: { flex: 1, fontSize: fs(11), fontFamily: ff('500'), color: colors.faint },
   hintError: { color: colors.rust, fontFamily: ff('600') },
   mic: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.micBg, alignItems: 'center', justifyContent: 'center' },
   micOn: { backgroundColor: colors.green },

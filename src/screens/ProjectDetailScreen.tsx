@@ -10,7 +10,7 @@ import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WindowPicker } from '../components/WindowPicker';
 import { CheckIcon, ChevronDownIcon } from '../components/Icons';
-import { colors, ff, radius, space } from '../theme/tokens';
+import { colors, ff, fs, radius, space } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
@@ -114,27 +114,27 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream, paddingHorizontal: space.screen },
   top: { alignItems: 'center', justifyContent: 'flex-end', paddingTop: 8 },
   close: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  closeText: { fontSize: 15, fontFamily: ff('600'), color: colors.muted },
+  closeText: { fontSize: fs(15), fontFamily: ff('600'), color: colors.muted },
   content: { paddingTop: 12, paddingBottom: 40, gap: 16 },
   head: { gap: 5 },
-  kicker: { fontSize: 10, fontFamily: ff('700'), color: colors.green, letterSpacing: 0.6 },
-  title: { fontSize: 24, fontFamily: ff('800'), color: colors.ink, letterSpacing: -0.4 },
-  meta: { fontSize: 13, fontFamily: ff('500'), color: colors.muted },
+  kicker: { fontSize: fs(10), fontFamily: ff('700'), color: colors.green, letterSpacing: 0.6 },
+  title: { fontSize: fs(24), fontFamily: ff('800'), color: colors.ink, letterSpacing: -0.4 },
+  meta: { fontSize: fs(13), fontFamily: ff('500'), color: colors.muted },
   milestone: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.cardLg, paddingHorizontal: 15, paddingVertical: 13, gap: 11 },
   mHeader: { alignItems: 'center', gap: 10 },
   mDot: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.6, borderColor: colors.green },
   mDotDone: { backgroundColor: colors.green },
-  mTitle: { flex: 1, fontSize: 15, fontFamily: ff('700'), color: colors.ink },
+  mTitle: { flex: 1, fontSize: fs(15), fontFamily: ff('700'), color: colors.ink },
   chevUp: { transform: [{ rotate: '180deg' }] },
   stepRow: { alignItems: 'flex-start', gap: 11, paddingLeft: 2 },
   checkbox: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.6, borderColor: colors.muted2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   checkboxOn: { backgroundColor: colors.green, borderColor: colors.green },
   stepBody: { flex: 1, gap: 6 },
-  stepText: { fontSize: 14.5, fontFamily: ff('500'), color: colors.ink, lineHeight: 21 },
+  stepText: { fontSize: fs(14.5), fontFamily: ff('500'), color: colors.ink, lineHeight: 21 },
   stepTextDone: { color: colors.muted2, textDecorationLine: 'line-through' },
   currentRow: { alignItems: 'center', gap: 9 },
-  startHereTag: { fontSize: 10, fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
-  todayChip: { fontSize: 11, fontFamily: ff('700'), color: colors.green },
+  startHereTag: { fontSize: fs(10), fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
+  todayChip: { fontSize: fs(11), fontFamily: ff('700'), color: colors.green },
   doToday: { borderWidth: 1, borderColor: colors.green, borderRadius: radius.inner, paddingHorizontal: 11, paddingVertical: 6 },
-  doTodayText: { fontSize: 11.5, fontFamily: ff('700'), color: colors.green },
+  doTodayText: { fontSize: fs(11.5), fontFamily: ff('700'), color: colors.green },
 });

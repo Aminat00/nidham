@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors, ff, radius } from '../theme/tokens';
+import { colors, ff, fs, radius } from '../theme/tokens';
 import { row, textStart } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { ChevronDownIcon, CheckIcon } from './Icons';
@@ -70,10 +70,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 10,
   },
-  controlText: { flex: 1, fontSize: 14, fontFamily: ff('600'), color: colors.ink },
+  controlText: { flex: 1, fontSize: fs(14), fontFamily: ff('600'), color: colors.ink },
   backdrop: { flex: 1, backgroundColor: 'rgba(28,26,22,0.35)', justifyContent: 'center', paddingHorizontal: 28 },
   sheet: { backgroundColor: colors.card, borderRadius: radius.card, maxHeight: '70%', overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
   option: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: colors.hairline2 },
   optionOn: { backgroundColor: colors.tint },
-  optionText: { flex: 1, fontSize: 15, fontFamily: ff('600') },
+  optionText: { flex: 1, fontSize: fs(15), fontFamily: ff('600') },
 });

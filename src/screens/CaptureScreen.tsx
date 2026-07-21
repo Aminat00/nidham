@@ -13,12 +13,12 @@ import { ThinkingCard } from '../components/ThinkingCard';
 import { FadeInView } from '../components/FadeInView';
 import { ProfileButton } from '../components/ProfileButton';
 import { CheckIcon } from '../components/Icons';
-import { amiri, colors, ff, radius, space } from '../theme/tokens';
+import { amiri, colors, ff, fs, radius, space } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
 import { usePrayerTimes } from '../data/PrayerTimesContext';
-import { triageCapture } from '../agent/triage';
+import { runCaptureAgent } from '../agent/runCaptureAgent';
 import { runProjectAgent } from '../agent/runProjectAgent';
 import { fallbackProjectTurn } from '../agent/projectFallback';
 import type { ConversationTurn } from '../agent/projectContract';
@@ -27,15 +27,15 @@ import { DEMO_NOW_ISO, PRAYER_TIMES } from '../data/demo';
 type Entry =
   | { kind: 'user'; text: string }
   | { kind: 'agent'; text: string }
-  | { kind: 'task'; title: string; scheduled: boolean }
+  | { kind: 'task'; taskId: string; title: string; scheduled: boolean }
   | { kind: 'plan'; projectId: string; title: string; firstStep?: string };
 
 /** Max answers before we force a plan (matches the agent's own cap). */
 const MAX_ANSWERS = 3;
 
-export function CaptureScreen({ onOpenProfile, onOpenProject }: { onOpenProfile: () => void; onOpenProject: (id: string) => void }) {
+export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOpenProfile: () => void; onOpenProject: (id: string) => void; onOpenTask: (id: string) => void }) {
   const { strings, isRTL, lang } = useI18n();
-  const { addTask, createProject } = useStore();
+  const { addCaptureTask, createProject } = useStore();
   const { live } = usePrayerTimes();
   const times = live?.times ?? PRAYER_TIMES;
 
@@ -86,19 +86,45 @@ export function CaptureScreen({ onOpenProfile, onOpenProject }: { onOpenProfile:
       return;
     }
 
-    const tri = triageCapture(trimmed);
-    if (tri.kind === 'task') {
-      addTask(trimmed, tri);
-      setThread((t) => [...t, { kind: 'user', text: trimmed }, { kind: 'task', title: trimmed, scheduled: tri.scheduleToday }]);
-      return;
-    }
+    // First turn → the capture agent classifies (clean task / interview / rare first-turn plan).
+    void firstTurn(trimmed);
+  };
 
-    // Project → open the interview.
-    modeRef.current = 'interview';
-    const convo0: ConversationTurn[] = [{ role: 'user', text: trimmed }];
-    convoRef.current = convo0;
-    setThread((t) => [...t, { kind: 'user', text: trimmed }]);
-    void runTurn(convo0);
+  const firstTurn = async (trimmed: string) => {
+    setBusy(true);
+    try {
+      const res = await runCaptureAgent({
+        capture: trimmed,
+        context: { now: DEMO_NOW_ISO, lang, prayerTimes: times, existingItems: [] },
+      });
+
+      if (res.kind === 'task') {
+        const id = addCaptureTask(res.task);
+        setThread((t) => [
+          ...t,
+          { kind: 'user', text: trimmed },
+          { kind: 'task', taskId: id, title: res.task.title, scheduled: !!res.task.scheduleToday },
+        ]);
+      } else if (res.kind === 'ask') {
+        // The agent already returned the first interview question — do not call runProjectAgent again.
+        modeRef.current = 'interview';
+        convoRef.current = [{ role: 'user', text: trimmed }, { role: 'agent', text: res.question }];
+        setThread((t) => [...t, { kind: 'user', text: trimmed }, { kind: 'agent', text: res.question }]);
+      } else {
+        // plan — rare on the first turn, but handle it like runTurn's plan branch.
+        const id = createProject(res.project);
+        const steps = res.project.milestones[0]?.steps ?? [];
+        const first = steps.find((s) => s.startHere) ?? steps[0];
+        setThread((t) => [
+          ...t,
+          { kind: 'user', text: trimmed },
+          { kind: 'agent', text: res.summary },
+          { kind: 'plan', projectId: id, title: res.project.title, firstStep: first?.title },
+        ]);
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const interviewing = modeRef.current === 'interview';
@@ -143,13 +169,13 @@ export function CaptureScreen({ onOpenProfile, onOpenProject }: { onOpenProfile:
                 </View>
               </View>
             ) : e.kind === 'task' ? (
-              <View style={[styles.landed, { flexDirection: row(isRTL) }]}>
+              <Pressable style={[styles.landed, { flexDirection: row(isRTL) }]} onPress={() => onOpenTask(e.taskId)} accessibilityRole="button">
                 <View style={styles.check}><CheckIcon size={12} color={colors.white} /></View>
                 <View style={styles.landedBody}>
                   <Text style={[styles.landedTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{e.title}</Text>
                   <Text style={[styles.landedMeta, { textAlign: textStart(isRTL) }]}>{e.scheduled ? strings.sentToToday : strings.savedToTasks}</Text>
                 </View>
-              </View>
+              </Pressable>
             ) : (
               <Pressable style={styles.planCard} onPress={() => onOpenProject(e.projectId)} accessibilityRole="button">
                 <Text style={[styles.planKicker, { textAlign: textStart(isRTL) }]}>{strings.projectsSection.toUpperCase()}</Text>
@@ -186,27 +212,27 @@ const styles = StyleSheet.create({
   headerBlock: { paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 6 },
   headerRow: { alignItems: 'center', justifyContent: 'space-between' },
   titleRow: { alignItems: 'baseline', gap: 9 },
-  title: { fontSize: 22, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
-  titleScript: { fontFamily: amiri(), fontSize: 19, color: colors.green },
+  title: { fontSize: fs(22), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
+  titleScript: { fontFamily: amiri(), fontSize: fs(19), color: colors.green },
   scroll: { flex: 1 },
-  intro: { fontSize: 12.5, fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320, marginBottom: 4 },
+  intro: { fontSize: fs(12.5), fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320, marginBottom: 4 },
   thread: { paddingHorizontal: space.screen, paddingTop: 4, paddingBottom: 14, gap: 10 },
   inputBar: { paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 10, borderTopWidth: 1, borderTopColor: colors.hairline2, backgroundColor: colors.cream },
   bubbleRow: { width: '100%' },
   bubble: { maxWidth: '86%', paddingHorizontal: 14, paddingVertical: 11, borderRadius: radius.card },
   userBubble: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderBottomRightRadius: 6 },
   agentBubble: { backgroundColor: colors.tint, borderBottomLeftRadius: 6 },
-  bubbleText: { fontSize: 14.5, fontFamily: ff('500'), color: colors.ink, lineHeight: 21 },
+  bubbleText: { fontSize: fs(14.5), fontFamily: ff('500'), color: colors.ink, lineHeight: 21 },
   landed: { alignItems: 'center', gap: 11, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 12 },
   check: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
   landedBody: { flex: 1, gap: 2 },
-  landedTitle: { fontSize: 14, fontFamily: ff('600'), color: colors.ink },
-  landedMeta: { fontSize: 11.5, fontFamily: ff('500'), color: colors.muted },
+  landedTitle: { fontSize: fs(14), fontFamily: ff('600'), color: colors.ink },
+  landedMeta: { fontSize: fs(11.5), fontFamily: ff('500'), color: colors.muted },
   planCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.green, borderRadius: radius.cardLg, paddingHorizontal: 16, paddingVertical: 14, gap: 7 },
-  planKicker: { fontSize: 10, fontFamily: ff('700'), color: colors.green, letterSpacing: 0.6 },
-  planTitle: { fontSize: 16.5, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 },
+  planKicker: { fontSize: fs(10), fontFamily: ff('700'), color: colors.green, letterSpacing: 0.6 },
+  planTitle: { fontSize: fs(16.5), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 },
   startHereRow: { alignItems: 'center', gap: 8 },
-  startHereTag: { fontSize: 10, fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
-  startHereText: { flex: 1, fontSize: 13.5, fontFamily: ff('600'), color: colors.ink },
-  openLink: { fontSize: 12.5, fontFamily: ff('700'), color: colors.green, marginTop: 2 },
+  startHereTag: { fontSize: fs(10), fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
+  startHereText: { flex: 1, fontSize: fs(13.5), fontFamily: ff('600'), color: colors.ink },
+  openLink: { fontSize: fs(12.5), fontFamily: ff('700'), color: colors.green, marginTop: 2 },
 });

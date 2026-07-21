@@ -10,7 +10,7 @@ import type { Item } from '../types/item';
 import { Card } from './Card';
 import { Badge, EnergyDot, StepNum } from './primitives';
 import { CalendarIcon } from './Icons';
-import { colors, ff, radius } from '../theme/tokens';
+import { colors, ff, fs, radius } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
@@ -69,13 +69,13 @@ export function CaptureCard({ item }: { item: Item }) {
 const styles = StyleSheet.create({
   card: { paddingVertical: 14, paddingHorizontal: 15, gap: 10 },
   header: { alignItems: 'center', gap: 11 },
-  title: { flex: 1, fontSize: 14, fontFamily: ff('600'), color: colors.ink },
+  title: { flex: 1, fontSize: fs(14), fontFamily: ff('600'), color: colors.ink },
   chip: { alignSelf: 'flex-start', alignItems: 'center', gap: 7, backgroundColor: colors.tint, paddingHorizontal: 11, paddingVertical: 7, borderRadius: radius.chip },
-  chipText: { fontSize: 12, fontFamily: ff('700'), color: colors.green },
+  chipText: { fontSize: fs(12), fontFamily: ff('700'), color: colors.green },
   steps: { gap: 6, marginTop: 1 },
-  stepsLabel: { fontSize: 10, fontFamily: ff('600'), color: colors.muted2, letterSpacing: 0.6, marginBottom: 1 },
+  stepsLabel: { fontSize: fs(10), fontFamily: ff('600'), color: colors.muted2, letterSpacing: 0.6, marginBottom: 1 },
   stepRow: { alignItems: 'center', gap: 10, paddingHorizontal: 11, paddingVertical: 8, borderRadius: radius.chip },
   stepFirst: { backgroundColor: colors.tint },
   stepRest: { backgroundColor: colors.cardAlt },
-  stepLabel: { flex: 1, fontSize: 12.5, fontFamily: ff('600') },
+  stepLabel: { flex: 1, fontSize: fs(12.5), fontFamily: ff('600') },
 });

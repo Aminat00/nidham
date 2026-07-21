@@ -11,7 +11,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Item } from '../types/item';
 import { ProfileButton } from '../components/ProfileButton';
 import { Badge, CheckBox, Dot, EnergyDot, TimelineNode } from '../components/primitives';
-import { amiri, colors, ff, space } from '../theme/tokens';
+import { amiri, colors, ff, fs, space } from '../theme/tokens';
 import { row, startSide, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
@@ -325,58 +325,58 @@ const styles = StyleSheet.create({
   headerRow: { justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 2 },
   headerLeft: { gap: 3 },
   headerRight: { alignItems: 'center', gap: 10 },
-  dateLine: { fontSize: 12, fontFamily: ff('500'), color: colors.muted, letterSpacing: 0.4 },
-  greeting: { fontSize: 21, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 },
+  dateLine: { fontSize: fs(12), fontFamily: ff('500'), color: colors.muted, letterSpacing: 0.4 },
+  greeting: { fontSize: fs(21), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: colors.white, fontFamily: amiri(), fontSize: 18 },
+  avatarText: { color: colors.white, fontFamily: amiri(), fontSize: fs(18) },
 
   nowStrip: { alignItems: 'center', gap: 12, marginTop: 16, paddingVertical: 11, paddingHorizontal: 13, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border2, borderRadius: 16 },
   timeBadge: { width: 46, height: 46, borderRadius: 13, backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center' },
-  timeBadgeText: { fontSize: 14, fontFamily: ff('700'), color: colors.green },
+  timeBadgeText: { fontSize: fs(14), fontFamily: ff('700'), color: colors.green },
   nowMid: { flex: 1, gap: 1 },
   nameRow: { alignItems: 'baseline', gap: 7 },
-  nowPrayer: { fontSize: 14.5, fontFamily: ff('700'), color: colors.ink },
-  nowSub: { fontSize: 12, fontFamily: ff('500'), color: colors.muted },
-  scriptSm: { fontFamily: amiri(), fontSize: 14, color: colors.muted },
+  nowPrayer: { fontSize: fs(14.5), fontFamily: ff('700'), color: colors.ink },
+  nowSub: { fontSize: fs(12), fontFamily: ff('500'), color: colors.muted },
+  scriptSm: { fontFamily: amiri(), fontSize: fs(14), color: colors.muted },
 
   flowHeader: { justifyContent: 'space-between', alignItems: 'baseline', marginTop: 22, marginBottom: 10, paddingHorizontal: 2 },
-  flowTitle: { fontSize: 15, fontFamily: ff('700'), color: colors.ink },
-  flowCount: { fontSize: 12, fontFamily: ff('500'), color: colors.muted },
+  flowTitle: { fontSize: fs(15), fontFamily: ff('700'), color: colors.ink },
+  flowCount: { fontSize: fs(12), fontFamily: ff('500'), color: colors.muted },
 
   timeline: { position: 'relative' },
   spine: { position: 'absolute', top: 16, bottom: 14, width: 2, backgroundColor: colors.timeline, borderRadius: 2 },
 
   prayerRow: { alignItems: 'center', gap: 11, marginVertical: 3 },
   prayerContent: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.hairline },
-  prayerName: { fontSize: 14.5, fontFamily: ff('700') },
-  prayerTime: { fontSize: 12, fontFamily: ff('600'), color: colors.muted },
-  script: { fontFamily: amiri(), fontSize: 14, color: colors.faint },
-  scriptLg: { fontFamily: amiri(), fontSize: 15, color: colors.faint },
+  prayerName: { fontSize: fs(14.5), fontFamily: ff('700') },
+  prayerTime: { fontSize: fs(12), fontFamily: ff('600'), color: colors.muted },
+  script: { fontFamily: amiri(), fontSize: fs(14), color: colors.faint },
+  scriptLg: { fontFamily: amiri(), fontSize: fs(15), color: colors.faint },
 
   tesCard: { alignItems: 'center', gap: 11, marginBottom: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.tesBorder, borderRadius: 15, paddingVertical: 12, paddingHorizontal: 14 },
-  tesLabel: { flex: 1, fontSize: 13, fontFamily: ff('600'), color: colors.ink },
+  tesLabel: { flex: 1, fontSize: fs(13), fontFamily: ff('600'), color: colors.ink },
 
   akhiraRow: { alignItems: 'flex-start', gap: 11 },
   gutter: { width: 30, alignItems: 'center', paddingTop: 9 },
   akhiraContent: { flex: 1, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.hairline },
   akhiraTop: { alignItems: 'center', gap: 8 },
-  akhiraTitle: { flex: 1, fontSize: 13, fontFamily: ff('600'), color: colors.ink },
-  akhiraTime: { fontSize: 10.5, fontFamily: ff('600'), color: colors.muted2 },
-  akhiraMeta: { fontSize: 11, fontFamily: ff('500'), color: colors.faint, marginStart: 13, marginTop: 1 },
+  akhiraTitle: { flex: 1, fontSize: fs(13), fontFamily: ff('600'), color: colors.ink },
+  akhiraTime: { fontSize: fs(10.5), fontFamily: ff('600'), color: colors.muted2 },
+  akhiraMeta: { fontSize: fs(11), fontFamily: ff('500'), color: colors.faint, marginStart: 13, marginTop: 1 },
 
   dunyaCard: { marginTop: 8, marginBottom: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 2 },
   dunyaRow: { alignItems: 'center', gap: 11, paddingVertical: 10 },
   dunyaDivider: { borderTopWidth: 1, borderTopColor: colors.hairline2 },
   dunyaMain: { flex: 1, gap: 2 },
   dunyaTitleRow: { alignItems: 'center', gap: 6 },
-  dunyaTitle: { flexShrink: 1, fontSize: 13, fontFamily: ff('600'), color: colors.ink },
+  dunyaTitle: { flexShrink: 1, fontSize: fs(13), fontFamily: ff('600'), color: colors.ink },
   dunyaMetaRow: { alignItems: 'center', gap: 7 },
-  dunyaMeta: { fontSize: 11, fontFamily: ff('500'), color: colors.muted2 },
-  dunyaTime: { fontSize: 11, fontFamily: ff('700'), color: colors.muted },
+  dunyaMeta: { fontSize: fs(11), fontFamily: ff('500'), color: colors.muted2 },
+  dunyaTime: { fontSize: fs(11), fontFamily: ff('700'), color: colors.muted },
 
   mutedStrike: { color: colors.faint, textDecorationLine: 'line-through' },
 
   toast: { position: 'absolute', left: space.screen, right: space.screen, bottom: 90, backgroundColor: colors.green, borderRadius: 13, paddingHorizontal: 16, paddingVertical: 13, alignItems: 'center', justifyContent: 'space-between' },
-  toastText: { color: colors.white, fontSize: 13, fontFamily: ff('600') },
-  toastAction: { color: colors.white, fontSize: 13, fontFamily: ff('700'), textDecorationLine: 'underline' },
+  toastText: { color: colors.white, fontSize: fs(13), fontFamily: ff('600') },
+  toastAction: { color: colors.white, fontSize: fs(13), fontFamily: ff('700'), textDecorationLine: 'underline' },
 });
