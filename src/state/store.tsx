@@ -28,7 +28,8 @@ import { loadState, saveState, clearState, PersistedState } from './persistence'
 import { usePrayerTimes } from '../data/PrayerTimesContext';
 import { useAuth } from './auth';
 import { fetchAll, saveAll, deleteAll } from '../data/itemsRepo';
-import { addMinutes, windowBaseTime, suggestCurrentWindow, type Times } from './schedule';
+import { addMinutes, windowBaseTime, suggestCurrentWindow, scheduledFields, captureTaskToItem, type Times } from './schedule';
+import type { CaptureTask } from '../agent/captureContract';
 
 /** Minimum "Nidham is scheduling…" duration — keeps the moment calm, never jumpy. */
 const MIN_THINKING_MS = 1500;
@@ -70,6 +71,12 @@ interface StoreValue {
   createProject: (plan: ProjectPlan) => string;
   /** File a loose task from a triaged capture (backlog, or Today if triaged for today). */
   addTask: (text: string, triage: Triage) => string;
+  /** File a loose task from the capture agent's parsed result (backlog, or today if flagged). */
+  addCaptureTask: (task: CaptureTask) => string;
+  /** Schedule an item to any date + window (+ optional exact time). */
+  scheduleItem: (id: string, input: { date: string; window?: Window; time?: string | null }) => void;
+  /** Delete a captured item (guarded — seed items are never removed). */
+  deleteItem: (id: string) => void;
   /** Suggested window for "Do today" right now. */
   suggestWindow: () => Window;
   /** Schedule an item into today, in a prayer window. */
@@ -378,6 +385,34 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [upsertItems],
   );
 
+  const addCaptureTask = useCallback((task: CaptureTask): string => {
+    const id = 'cap_' + Date.now().toString(36);
+    const schedule = task.scheduleToday
+      ? scheduledFields({ date: DEMO_TODAY, window: suggestCurrentWindow(timesRef.current, new Date()) }, timesRef.current)
+      : undefined;
+    upsertItems([captureTaskToItem(task, id, schedule)]);
+    return id;
+  }, [upsertItems]);
+
+  const scheduleItem = useCallback((id: string, input: { date: string; window?: Window; time?: string | null }) => {
+    setItemsById((prev) => {
+      const it = prev[id];
+      if (!it) return prev;
+      return { ...prev, [id]: { ...it, ...scheduledFields(input, timesRef.current) } };
+    });
+  }, []);
+
+  const deleteItem = useCallback((id: string) => {
+    if (SEED_IDS.has(id)) return;
+    setItemsById((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setFeedIds((prev) => prev.filter((f) => f !== id));
+  }, []);
+
   const scheduleToday = useCallback((id: string, window: Window = 'anytime') => {
     setItemsById((prev) => {
       const it = prev[id];
@@ -399,7 +434,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setItemsById((prev) => {
       const it = prev[id];
       if (!it) return prev;
-      return { ...prev, [id]: { ...it, day: undefined } };
+      return { ...prev, [id]: { ...it, day: undefined, time: null } };
     });
   }, []);
 
@@ -445,6 +480,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       milestoneSteps,
       createProject,
       addTask,
+      addCaptureTask,
+      scheduleItem,
+      deleteItem,
       suggestWindow,
       scheduleToday,
       unschedule,
@@ -470,6 +508,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       milestoneSteps,
       createProject,
       addTask,
+      addCaptureTask,
+      scheduleItem,
+      deleteItem,
       suggestWindow,
       scheduleToday,
       unschedule,
