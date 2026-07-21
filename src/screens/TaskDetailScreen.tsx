@@ -56,7 +56,8 @@ export function TaskDetailScreen({ taskId, onClose }: { taskId: string; onClose:
   };
 
   const handleSave = () => {
-    scheduleItem(taskId, { date: selectedDate, window: selectedWindow, time: exactOn ? selectedTime || null : null });
+    const validTime = exactOn && /^([01]\d|2[0-3]):[0-5]\d$/.test(selectedTime) ? selectedTime : null;
+    scheduleItem(taskId, { date: selectedDate, window: selectedWindow, time: validTime });
     onClose();
   };
   const handleMarkDone = () => {
@@ -119,11 +120,11 @@ export function TaskDetailScreen({ taskId, onClose }: { taskId: string; onClose:
             {dayMode === 'pick' ? (
               <View style={[styles.stepperRow, { flexDirection: row(isRTL) }]}>
                 <Pressable onPress={() => setSelectedDate((d) => addDays(d, -1))} style={styles.stepBtn} accessibilityRole="button">
-                  <Text style={styles.stepBtnText}>−1 day</Text>
+                  <Text style={styles.stepBtnText}>−1</Text>
                 </Pressable>
                 <Text style={styles.stepperDate}>{selectedDate}</Text>
                 <Pressable onPress={() => setSelectedDate((d) => addDays(d, 1))} style={styles.stepBtn} accessibilityRole="button">
-                  <Text style={styles.stepBtnText}>+1 day</Text>
+                  <Text style={styles.stepBtnText}>+1</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -171,6 +172,12 @@ export function TaskDetailScreen({ taskId, onClose }: { taskId: string; onClose:
           </View>
         </ScrollView>
       )}
+
+      <WindowPicker
+        visible={pickerOpen}
+        onSelect={(w) => { setSelectedWindow(w); setPickerOpen(false); }}
+        onClose={() => setPickerOpen(false)}
+      />
     </SafeAreaView>
   );
 }
