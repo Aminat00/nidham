@@ -19,9 +19,13 @@ export interface Triage {
   scheduleToday: boolean;
 }
 
-/** Words that signal a project-sized goal (vs a one-shot task). */
+/**
+ * Words that signal a project-sized goal (vs a one-shot task). Kept conservative so
+ * quick tasks ("book a flight", "buy groceries") don't get pulled into an interview —
+ * e.g. we match "write a/my …" (write a book) but not the bare word "book".
+ */
 const PROJECT_SIGNALS =
-  /\b(business|start[- ]?up|project|thesis|website|web ?app|app|brand|portfolio|wedding|company|launch|found a|start (a|my)|move (from|to|out)|relocat|build (a|an|my)|create (a|an|my))\b/i;
+  /\b(business|start[- ]?up|project|thesis|website|web ?app|app|brand|portfolio|wedding|company|launch|found a|start (a|my)|move (from|to|out)|relocat|build (a|an|my)|create (a|an|my)|write (a|an|my)|novel|screenplay|podcast|newsletter|marathon|album|campaign|plan (a|an|my)|organi[sz]e|renovat|remodel)\b/i;
 
 /** Ordered area matchers — first hit wins, so spiritual/chore beat their overlaps. */
 const AREA_RULES: Array<{ area: Area; re: RegExp }> = [

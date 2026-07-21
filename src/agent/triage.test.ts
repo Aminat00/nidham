@@ -5,11 +5,19 @@ describe('triageCapture — kind', () => {
     expect(triageCapture('I want to start a solo AI business').kind).toBe('project');
     expect(triageCapture('plan my move from Poland').kind).toBe('project');
     expect(triageCapture('build a portfolio website').kind).toBe('project');
+    expect(triageCapture('I want to write a book').kind).toBe('project');
+    expect(triageCapture('organize the wedding').kind).toBe('project');
+    expect(triageCapture('run a marathon').kind).toBe('project');
   });
 
   it('does NOT flag a long-but-chatty task as a project', () => {
     // 40+ chars, but no project signal → still a task (the old length heuristic mis-fired here).
     expect(triageCapture("call my aunt I haven't talked to in ages").kind).toBe('task');
+  });
+
+  it('does NOT mistake quick "book …" errands for projects', () => {
+    expect(triageCapture('book a flight to Berlin').kind).toBe('task');
+    expect(triageCapture('buy groceries and pharmacy').kind).toBe('task');
   });
 });
 

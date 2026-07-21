@@ -102,9 +102,11 @@ export function CaptureScreen({ onOpenProfile, onOpenProject }: { onOpenProfile:
   };
 
   const interviewing = modeRef.current === 'interview';
+  const scrollRef = useRef<ScrollView>(null);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <View style={styles.screen}>
+      {/* Header — fixed */}
       <View style={styles.headerBlock}>
         <View style={[styles.headerRow, { flexDirection: row(isRTL) }]}>
           <View style={[styles.titleRow, { flexDirection: row(isRTL) }]}>
@@ -113,17 +115,19 @@ export function CaptureScreen({ onOpenProfile, onOpenProject }: { onOpenProfile:
           </View>
           <ProfileButton onPress={onOpenProfile} />
         </View>
-        <Text style={[styles.intro, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{strings.capIntro}</Text>
       </View>
 
-      <DumpBox
-        onSubmit={onSubmit}
-        busy={busy}
-        placeholder={interviewing ? strings.answerPlaceholder : strings.capPlaceholder}
-        hint={strings.talkHint}
-      />
+      {/* Conversation — scrolls, sticks to the newest message */}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.thread}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+      >
+        <Text style={[styles.intro, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{strings.capIntro}</Text>
 
-      <View style={styles.thread}>
         {thread.map((e, i) => (
           <FadeInView key={i} delay={0}>
             {e.kind === 'user' ? (
@@ -162,21 +166,32 @@ export function CaptureScreen({ onOpenProfile, onOpenProject }: { onOpenProfile:
           </FadeInView>
         ))}
         {busy && <ThinkingCard />}
+      </ScrollView>
+
+      {/* Input — pinned to the bottom, chat-style (answers land right under the question) */}
+      <View style={styles.inputBar}>
+        <DumpBox
+          onSubmit={onSubmit}
+          busy={busy}
+          placeholder={interviewing ? strings.answerPlaceholder : strings.capPlaceholder}
+          hint={strings.talkHint}
+        />
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
-  content: { paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 40, gap: 13 },
-  headerBlock: { gap: 3, paddingHorizontal: 2 },
+  headerBlock: { paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 6 },
   headerRow: { alignItems: 'center', justifyContent: 'space-between' },
   titleRow: { alignItems: 'baseline', gap: 9 },
   title: { fontSize: 22, fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
   titleScript: { fontFamily: amiri(), fontSize: 19, color: colors.green },
-  intro: { fontSize: 12.5, fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320 },
-  thread: { gap: 10 },
+  scroll: { flex: 1 },
+  intro: { fontSize: 12.5, fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320, marginBottom: 4 },
+  thread: { paddingHorizontal: space.screen, paddingTop: 4, paddingBottom: 14, gap: 10 },
+  inputBar: { paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 10, borderTopWidth: 1, borderTopColor: colors.hairline2, backgroundColor: colors.cream },
   bubbleRow: { width: '100%' },
   bubble: { maxWidth: '86%', paddingHorizontal: 14, paddingVertical: 11, borderRadius: radius.card },
   userBubble: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderBottomRightRadius: 6 },
