@@ -22,7 +22,7 @@ export function isTranscribeConfigured(): boolean {
 
 /**
  * Send recorded audio to the STT webhook and return the transcript. Accepts either a
- * file uri (native, from expo-av) or a Blob (web, from MediaRecorder). Returns '' on any
+ * file uri (native, from expo-audio) or a Blob (web, from MediaRecorder). Returns '' on any
  * failure so the caller can degrade gracefully.
  */
 export async function transcribe(audio: string | Blob, lang: Lang): Promise<string> {

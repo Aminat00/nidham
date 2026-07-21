@@ -6,7 +6,7 @@
 
 import React, { useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Audio } from 'expo-av';
+import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
 import { ArrowRightIcon, MicIcon } from './Icons';
 import { colors, ff, radius } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
@@ -39,7 +39,7 @@ export function DumpBox({
   const recRef = useRef<{ stop: () => void } | null>(null);
   const baseRef = useRef('');
   const gotSpeechRef = useRef(false);
-  const audioRecRef = useRef<Audio.Recording | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY); // native (expo-audio)
   // Web MediaRecorder → Whisper (n8n).
   const webRecRef = useRef<MediaRecorder | null>(null);
   const webChunksRef = useRef<Blob[]>([]);
@@ -51,36 +51,29 @@ export function DumpBox({
     setText('');
   };
 
-  // Native (iOS/Android): record with expo-av, then transcribe via the STT webhook
+  // Native (iOS/Android): record with expo-audio, then transcribe via the STT webhook
   // (Whisper through n8n). Never throws — a failed transcription just leaves the box as-is.
   const startNativeRecording = async () => {
     try {
-      const perm = await Audio.requestPermissionsAsync();
+      const perm = await AudioModule.requestRecordingPermissionsAsync();
       if (!perm.granted) {
         setListening(false);
+        setMicError(true);
         return;
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const rec = new Audio.Recording();
-      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await rec.startAsync();
-      audioRecRef.current = rec;
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
     } catch {
       setListening(false);
-      audioRecRef.current = null;
+      setMicError(true);
     }
   };
 
   const stopNativeRecording = async () => {
-    const rec = audioRecRef.current;
-    audioRecRef.current = null;
-    if (!rec) {
-      setListening(false);
-      return;
-    }
     try {
-      await rec.stopAndUnloadAsync();
-      const uri = rec.getURI();
+      await recorder.stop();
+      const uri = recorder.uri;
       const spoken = uri ? await transcribe(uri, lang) : '';
       if (spoken) setText((p) => (p.trim() ? p.trim() + ' ' + spoken : spoken));
     } catch {
@@ -138,7 +131,7 @@ export function DumpBox({
   };
 
   // Dictation: on web, use the n8n Whisper workflow if configured, else the browser's
-  // built-in Web Speech; on native, expo-av + the STT webhook.
+  // built-in Web Speech; on native, expo-audio + the STT webhook.
   const startVoice = () => {
     setMicError(false);
     setListening(true);
