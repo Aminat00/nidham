@@ -80,9 +80,11 @@ fails, the app falls back to a built-in plan, so it never breaks.
 
 ## 3. Build the flow
 
-Import [`nidham-agent.n8n.json`](./nidham-agent.n8n.json) into n8n (Workflows → Import
-from File). **One workflow serves BOTH agents** — it branches on the request's `agent`
-field. Five nodes:
+Import `docs/nidham-agent.n8n.json` into n8n (Workflows → Import from File). This file is
+**generated locally and not committed** (it's git-ignored) — regenerate it any time with
+`node scratchpad/gen-workflow.js`, which builds it straight from the prompt sources.
+**One workflow serves BOTH agents** — it branches on the request's `agent` field. Five
+nodes:
 
 1. **Webhook** (`POST /nidham`) — receives the payload.
 2. **Build Request** (Code) — picks the system prompt: the **project interview** prompt
