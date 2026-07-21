@@ -63,18 +63,22 @@ import type { Energy } from '../types/item';
  * each placement via scheduleItem. Mirrors the swappable-module philosophy of the others.
  */
 import type { AgentContext } from './contract';
-import type { Window, Energy } from '../types/item';
+import type { Window, Energy, Urgency } from '../types/item';
 
 export interface SchedulableSubtask {
   id: string;
   title: string;
   estimate?: string;
   energy?: Energy;
+  timeContext?: string;   // spoken/parsed time hint, e.g. "Wednesday or weekends" — a signal
+  urgency?: Urgency;      // a signal
 }
 
 export interface SchedulePayload {
   subtasks: SchedulableSubtask[];
   context: AgentContext;
+  /** true = project batch (fill near-horizon); false/omitted = loose (schedule-on-signal only). */
+  spread?: boolean;
 }
 
 export interface SchedulePlacement {
@@ -178,34 +182,59 @@ git commit -m "Flatten: carry subtask energy + estimate onto step Items"
 
 Add to `src/state/schedule.test.ts`:
 ```ts
-import { localSchedule } from './schedule';
+import { localSchedule, parseDayHint } from './schedule';
 import type { SchedulableSubtask } from '../agent/scheduleContract';
 
+const NOW = '2026-07-21T09:00:00+03:00'; // 2026-07-21 is a Monday
 const ctx = (existing: Array<{ day?: string | null }> = []) => ({
-  now: '2026-07-21T09:00:00+03:00', lang: 'en' as const,
+  now: NOW, lang: 'en' as const,
   prayerTimes: { fajr: '03:51', dhuhr: '13:15', asr: '17:13', maghrib: '20:39', isha: '22:21' },
   existingItems: existing.map((e, i) => ({ id: 'e' + i, title: 't', window: 'anytime', day: e.day })),
 });
-const subs = (n: number, energy?: 'deep' | 'light' | 'admin'): SchedulableSubtask[] =>
-  Array.from({ length: n }, (_, i) => ({ id: 's' + i, title: 'sub' + i, energy }));
+const subs = (n: number, extra: Partial<SchedulableSubtask> = {}): SchedulableSubtask[] =>
+  Array.from({ length: n }, (_, i) => ({ id: 's' + i, title: 'sub' + i, ...extra }));
 
-describe('localSchedule', () => {
+describe('parseDayHint', () => {
+  it('resolves a weekday name to the nearest such day (today or later)', () => {
+    expect(parseDayHint('go Wednesday', '2026-07-21')).toBe('2026-07-23'); // Mon → Wed
+  });
+  it('handles tomorrow / weekend / today, and null when no hint', () => {
+    expect(parseDayHint('tomorrow', '2026-07-21')).toBe('2026-07-22');
+    expect(parseDayHint('on weekends', '2026-07-21')).toBe('2026-07-26'); // Saturday
+    expect(parseDayHint('today please', '2026-07-21')).toBe('2026-07-21');
+    expect(parseDayHint('buy a bag', '2026-07-21')).toBeNull();
+    expect(parseDayHint(undefined, '2026-07-21')).toBeNull();
+  });
+});
+
+describe('localSchedule — spread (project batch)', () => {
   it('fills a day to the load cap (3) then moves to the next day', () => {
-    const p = localSchedule(subs(5), ctx());
+    const p = localSchedule(subs(5), ctx(), true);
     expect(p.map((x) => x.day)).toEqual(['2026-07-21', '2026-07-21', '2026-07-21', '2026-07-22', '2026-07-22']);
-    expect(p.every((x) => x.subtaskId.startsWith('s'))).toBe(true);
   });
-  it('puts deep work in the morning window, light in anytime', () => {
-    expect(localSchedule(subs(1, 'deep'), ctx())[0].window).toBe('morning');
-    expect(localSchedule(subs(1, 'light'), ctx())[0].window).toBe('anytime');
-  });
-  it('skips days already at the cap in existingItems', () => {
+  it('deep → morning, light → anytime; skips full existing days; caps at the horizon', () => {
+    expect(localSchedule(subs(1, { energy: 'deep' }), ctx(), true)[0].window).toBe('morning');
+    expect(localSchedule(subs(1, { energy: 'light' }), ctx(), true)[0].window).toBe('anytime');
     const full = ctx([{ day: '2026-07-21' }, { day: '2026-07-21' }, { day: '2026-07-21' }]);
-    expect(localSchedule(subs(1), full)[0].day).toBe('2026-07-22');
+    expect(localSchedule(subs(1), full, true)[0].day).toBe('2026-07-22');
+    expect(localSchedule(subs(30), ctx(), true).length).toBe(21); // 7 days * 3
   });
-  it('stops at the horizon (leaves overflow unscheduled)', () => {
-    const p = localSchedule(subs(30), ctx()); // 7 days * 3 = 21 max
-    expect(p.length).toBe(21);
+});
+
+describe('localSchedule — on-signal (loose)', () => {
+  it('places urgency today → today, a weekday hint → that day, and omits no-signal items', () => {
+    const p = localSchedule(
+      [
+        { id: 'a', title: 'urgent', urgency: 'today' },
+        { id: 'b', title: 'bag', timeContext: 'Wednesday or weekends' },
+        { id: 'c', title: 'someday', urgency: 'someday' },
+      ],
+      ctx(),
+      false,
+    );
+    expect(p.find((x) => x.subtaskId === 'a')?.day).toBe('2026-07-21');
+    expect(p.find((x) => x.subtaskId === 'b')?.day).toBe('2026-07-23'); // next Wednesday
+    expect(p.find((x) => x.subtaskId === 'c')).toBeUndefined(); // omitted (no signal)
   });
 });
 ```
@@ -217,43 +246,59 @@ Expected: FAIL — `localSchedule` not exported.
 
 - [ ] **Step 3: Implement**
 
-Add to `src/state/schedule.ts` (imports at top: `import { addDays } from '../utils/dates';` and `import type { AgentContext } from '../agent/contract';` and `import type { SchedulableSubtask, SchedulePlacement } from '../agent/scheduleContract';`):
+Add to `src/state/schedule.ts` (imports at top: `import { addDays, weekdayIndex } from '../utils/dates';`, `import type { AgentContext } from '../agent/contract';`, `import type { SchedulableSubtask, SchedulePlacement } from '../agent/scheduleContract';`; `Window` is already imported from `../types/item`):
 ```ts
 export const LOAD_CAP = 3;
 export const HORIZON_DAYS = 7;
 
+const WEEKDAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+/** Resolve a spoken time hint to the nearest ISO day (today or later), or null if none found. */
+export function parseDayHint(hint: string | undefined, todayIso: string): string | null {
+  if (!hint) return null;
+  const h = hint.toLowerCase();
+  if (/\btomorrow\b/.test(h)) return addDays(todayIso, 1);
+  if (/\btoday\b|\btonight\b/.test(h)) return todayIso;
+  const nextDow = (target: number) => addDays(todayIso, (target - weekdayIndex(todayIso) + 7) % 7);
+  if (/\bweekend\b|\bweekends\b/.test(h)) return nextDow(6); // Saturday
+  for (let i = 0; i < 7; i++) if (new RegExp(`\\b${WEEKDAY_NAMES[i]}\\b`).test(h)) return nextDow(i);
+  return null;
+}
+
+function place(sub: SchedulableSubtask, day: string): SchedulePlacement {
+  const deep = sub.energy === 'deep';
+  const window: Window = deep ? 'morning' : 'anytime';
+  return { subtaskId: sub.id, day, window, rationale: deep ? 'deep work → morning' : 'placed in an open slot' };
+}
+
 /**
- * Deterministic offline scheduler (also the runScheduleAgent fallback). Fills each day up to
- * LOAD_CAP within a HORIZON_DAYS window from `now`, skipping days already full per
- * context.existingItems; deep work → morning, else anytime. Overflow stays unscheduled.
+ * Deterministic offline scheduler (also the runScheduleAgent fallback).
+ * - spread=true (project batch): fill each day to LOAD_CAP within HORIZON_DAYS from `now`,
+ *   skipping days already full per context.existingItems; overflow stays unscheduled.
+ * - spread=false (loose): place each item ONLY on a signal — urgency now/today → today, or
+ *   parseDayHint(timeContext) → that day; omit no-signal items.
  */
-export function localSchedule(subtasks: SchedulableSubtask[], context: AgentContext): SchedulePlacement[] {
+export function localSchedule(subtasks: SchedulableSubtask[], context: AgentContext, spread = false): SchedulePlacement[] {
   const today = context.now.slice(0, 10);
-  const dayCount: Record<string, number> = {};
-  for (const it of context.existingItems) {
-    if (it.day) dayCount[it.day] = (dayCount[it.day] ?? 0) + 1;
-  }
   const placements: SchedulePlacement[] = [];
-  let cursor = 0; // day offset to resume scanning from
-  for (const sub of subtasks) {
-    let placedDay: string | null = null;
-    for (let d = cursor; d < HORIZON_DAYS; d++) {
-      const date = addDays(today, d);
-      if ((dayCount[date] ?? 0) < LOAD_CAP) {
-        placedDay = date;
-        dayCount[date] = (dayCount[date] ?? 0) + 1;
-        cursor = d;
-        break;
+  if (spread) {
+    const dayCount: Record<string, number> = {};
+    for (const it of context.existingItems) if (it.day) dayCount[it.day] = (dayCount[it.day] ?? 0) + 1;
+    let cursor = 0;
+    for (const sub of subtasks) {
+      let placedDay: string | null = null;
+      for (let d = cursor; d < HORIZON_DAYS; d++) {
+        const date = addDays(today, d);
+        if ((dayCount[date] ?? 0) < LOAD_CAP) { placedDay = date; dayCount[date] = (dayCount[date] ?? 0) + 1; cursor = d; break; }
       }
+      if (!placedDay) break;
+      placements.push(place(sub, placedDay));
     }
-    if (!placedDay) break; // horizon full
-    const window: Window = sub.energy === 'deep' ? 'morning' : 'anytime';
-    placements.push({
-      subtaskId: sub.id,
-      day: placedDay,
-      window,
-      rationale: sub.energy === 'deep' ? 'deep work → morning' : 'placed in an open slot',
-    });
+  } else {
+    for (const sub of subtasks) {
+      const target = sub.urgency === 'now' || sub.urgency === 'today' ? today : parseDayHint(sub.timeContext, today);
+      if (target) placements.push(place(sub, target));
+    }
   }
   return placements;
 }
@@ -295,6 +340,7 @@ const payload: SchedulePayload = {
     { id: 'a', title: 'Deep', energy: 'deep' },
     { id: 'b', title: 'Admin', energy: 'admin' },
   ],
+  spread: true, // project batch → both placed by the fallback
   context: {
     now: '2026-07-21T09:00:00+03:00', lang: 'en',
     prayerTimes: { fajr: '03:51', dhuhr: '13:15', asr: '17:13', maghrib: '20:39', isha: '22:21' },
@@ -327,27 +373,32 @@ Expected: FAIL — module not found.
  * System prompt for the Scheduler agent (direct mode; the n8n branch keeps its own copy).
  * Places day-sized subtasks onto days + prayer windows around the user's existing load.
  */
-export const SCHEDULER_SYSTEM_PROMPT = `You are Nidham's Scheduler. You place a project's
-day-sized subtasks onto days and prayer windows for a Muslim user with ADHD — calm, never
-overloaded.
+export const SCHEDULER_SYSTEM_PROMPT = `You are Nidham's Scheduler. You place day-sized items
+onto days and prayer windows for a Muslim user with ADHD — calm, never overloaded. The items
+may be a committed project's subtasks OR a single loose task.
 
-INPUT JSON: { "subtasks": [{ "id", "title", "estimate"?, "energy"? }], "context": {
-  "now": ISO8601, "lang", "prayerTimes": {fajr,dhuhr,asr,maghrib,isha},
-  "existingItems": [{ "id","title","window","day" }] } }.
+INPUT JSON: { "subtasks": [{ "id","title","estimate"?,"energy"?,"timeContext"?,"urgency"? }],
+  "spread"?: boolean, "context": { "now": ISO8601, "lang",
+  "prayerTimes": {fajr,dhuhr,asr,maghrib,isha}, "existingItems": [{ "id","title","window","day" }] } }.
 
-RULES
-- Schedule only the NEAR horizon (~the next 7 days from context.now). Leave overflow
-  unscheduled (just omit it) rather than dumping a long wall.
+POLICY
+- If "spread" is true (project batch): schedule the NEAR horizon (~next 7 days from
+  context.now), filling days up to the cap; leave overflow unscheduled (omit it).
+- If "spread" is false/absent (loose tasks): place an item ONLY when it has a SIGNAL — a
+  "timeContext" day hint (resolve "today/tonight", "tomorrow", a weekday like "Wednesday", or
+  "weekend" relative to context.now → the nearest such day) OR "urgency" of "now"/"today"
+  (→ today). OMIT items with no signal (they stay in the backlog).
+
+RULES (always)
 - Max 3 planned items per day. existingItems already occupy their day — count them; never
-  exceed the cap on a day.
+  exceed the cap. If a chosen day is full, use the next suitable day.
 - Energy-aware: "deep" → the day's peak window ("morning" or "dhuhr"); "light"/"admin" →
-  short gaps ("asr","maghrib","isha","anytime"). Never two "deep" on the same day.
-- window is one of: fajr, morning, dhuhr, afternoon, asr, maghrib, isha, evening, anytime.
-  Never schedule over a prayer. Spread work across days.
-- Echo each subtask's "id" EXACTLY as its "subtaskId".
+  short gaps ("asr","maghrib","isha","anytime"). Avoid two "deep" on the same day.
+- window ∈ {fajr,morning,dhuhr,afternoon,asr,maghrib,isha,evening,anytime}. Never over a prayer.
+- Echo each item's "id" EXACTLY as its "subtaskId". Write "rationale" in context.lang.
 
-OUTPUT: return ONLY JSON: { "placements": [ { "subtaskId", "day": "YYYY-MM-DD", "window",
-  "rationale": "<short>" } ] }. No prose, no code fences.`;
+OUTPUT: return ONLY JSON: { "placements": [ { "subtaskId","day":"YYYY-MM-DD","window",
+  "rationale":"<short>" } ] }. Omitted items simply don't appear. No prose, no code fences.`;
 ```
 
 - [ ] **Step 4: Write `runScheduleAgent`**
@@ -382,7 +433,7 @@ export function isScheduleAgentConfigured(): boolean {
 function fallback(payload: SchedulePayload, reason: string): ScheduleResult {
   // eslint-disable-next-line no-console
   console.warn(`[runScheduleAgent] using fallback — ${reason}`);
-  return { placements: localSchedule(payload.subtasks, payload.context) };
+  return { placements: localSchedule(payload.subtasks, payload.context, payload.spread) };
 }
 
 function normalize(raw: unknown): ScheduleResult | null {
@@ -575,13 +626,14 @@ git commit -m "PM prompt: batched clarify, grounded facts, day-sized subtasks wi
 
 ---
 
-### Task 7: CaptureScreen — build busy-map context + auto-schedule after a plan
+### Task 7: CaptureScreen — build busy-map + Scheduler owns all placement (projects + loose)
 
 **Files:**
 - Modify: `src/screens/CaptureScreen.tsx`
+- Modify: `src/state/store.tsx` (`addCaptureTask` → always file to backlog; Scheduler places)
 
 **Interfaces:**
-- Consumes: `runScheduleAgent` (Task 4); `subtasksOf`, `scheduledItems` (Task 5); `scheduleItem` (existing).
+- Consumes: `runScheduleAgent` (Task 4); `subtasksOf`, `scheduledItems` (Task 5); `scheduleItem`, `addCaptureTask` (existing); `CaptureTask` from `../agent/captureContract`.
 
 - [ ] **Step 1: Wire imports + store**
 
@@ -599,24 +651,54 @@ const buildContext = () => ({
   existingItems: scheduledItems().map((i) => ({ id: i.id, title: i.title, window: i.window, day: i.day })),
 });
 ```
-Use `buildContext()` where the payload `context` is assembled. Then add:
+Use `buildContext()` where the payload `context` is assembled. Then add two helpers — one for
+a project batch (`spread:true`), one for a loose task (`spread:false`, on-signal):
 ```ts
-const autoSchedule = async (projectId: string) => {
-  const subs = subtasksOf(projectId).map((i) => ({ id: i.id, title: i.title, estimate: i.note ?? undefined, energy: i.energy }));
-  if (subs.length === 0) return;
-  const { placements } = await runScheduleAgent({ subtasks: subs, context: buildContext() });
+const applyPlacements = (placements: { subtaskId: string; day: string; window: import('../types/item').Window }[]) => {
   for (const p of placements) scheduleItem(p.subtaskId, { date: p.day, window: p.window });
 };
+
+const autoScheduleProject = async (projectId: string) => {
+  const subs = subtasksOf(projectId).map((i) => ({ id: i.id, title: i.title, estimate: i.note ?? undefined, energy: i.energy }));
+  if (subs.length === 0) return;
+  const { placements } = await runScheduleAgent({ subtasks: subs, context: buildContext(), spread: true });
+  applyPlacements(placements);
+};
+
+// Loose task: only call the scheduler when there's a signal (timeContext or urgency now/today).
+const scheduleLooseTask = async (taskId: string, task: import('../agent/captureContract').CaptureTask) => {
+  const hasSignal = !!task.timeContext || task.urgency === 'now' || task.urgency === 'today';
+  if (!hasSignal) return;
+  const { placements } = await runScheduleAgent({
+    subtasks: [{ id: taskId, title: task.title, energy: task.energy, timeContext: task.timeContext, urgency: task.urgency }],
+    context: buildContext(),
+    spread: false,
+  });
+  applyPlacements(placements);
+};
 ```
+Also, in `src/state/store.tsx`, change `addCaptureTask` to **always file to the backlog** (remove
+its `scheduleToday` auto-schedule branch — the Scheduler now owns all placement): build the item
+via `captureTaskToItem(task, id)` with NO schedule argument, and drop the `scheduleToday`/
+`scheduledFields` logic in that function. The `timeContext` still lands on the item.
 
-- [ ] **Step 3: Call it after a plan is created**
+- [ ] **Step 3: Wire both scheduling paths**
 
-In BOTH plan-handling branches (`runTurn`'s plan branch and `firstTurn`'s `plan` branch), immediately after `const id = createProject(...)`, `await autoSchedule(id);`. Keep the `busy` guard so the "Nidham is thinking…"/scheduling state shows until placements are applied. (Both handlers are already async / inside `busy` try blocks.)
+- In BOTH plan-handling branches (`runTurn`'s plan branch and `firstTurn`'s `plan` branch),
+  immediately after `const id = createProject(...)`, add `await autoScheduleProject(id);`.
+- In `firstTurn`'s `task` branch, immediately after `const id = addCaptureTask(res.task);`, add
+  `await scheduleLooseTask(id, res.task);`.
+Keep the `busy` guard so the "thinking…/scheduling…" state shows until placements are applied
+(both handlers are already async, inside `busy` try blocks).
 
 - [ ] **Step 4: Verify typecheck + preview**
 
 Run: `npm run typecheck` → no errors.
-Preview (port 8085): capture a project-sized goal → after the plan card appears, open Tasks/Today and confirm the project's subtasks now have days (they appear on Today/upcoming). Console shows `[runScheduleAgent] using fallback` if the schedule webhook branch isn't live yet — that's expected; the local fallback still schedules. Screenshot Today showing scheduled subtasks.
+Preview (port 8085), three cases (the local fallback handles all offline — console `[runScheduleAgent] using fallback` is expected):
+1. Project goal → after the plan card, its subtasks appear on Today/upcoming days (`spread`).
+2. Loose "buy a bag, Wednesday or weekends" → lands on the coming Wednesday (on-signal).
+3. Loose "call mom" (no signal) → stays in the Tasks backlog (not scheduled).
+Screenshot Today + Tasks showing the three outcomes.
 
 - [ ] **Step 5: Commit**
 ```bash

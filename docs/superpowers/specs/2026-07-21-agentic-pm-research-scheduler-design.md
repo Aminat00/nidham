@@ -16,8 +16,11 @@ fuzzy goal all the way to **scheduled, doable days** — decomposition is only h
   questions; calm, small, day-sized units; one obvious next action; never a wall of steps.
 - **Ground facts, never invent them:** real-world specifics come from web search; the model
   only reasons about generic structure. (Carries the anti-hallucination fix already shipped.)
-- **A committed project earns automation:** loose captures wait for the user (suggest, they
-  dispose); a *project's* subtasks are **auto-scheduled** for them (movable afterward).
+- **One Scheduler, schedule-on-signal, for everything:** a single Scheduler handles ALL
+  placement — loose tasks AND project subtasks. It auto-places any item that carries a
+  **signal** (a spoken time hint like "Wednesday/weekends", or urgency today/now) into a free
+  day + open prayer window, and leaves vague/low-urgency items in the backlog. Anything placed
+  is movable afterward. `timeContext` stops being a passive note and becomes a real input.
 - **Systematic agents:** each agent has one responsibility, an explicit JSON contract, is
   stateless (state lives in the app), has its own fallback (never breaks the demo), and its
   own model tier. A thin n8n router; intelligence in the specialists.
@@ -28,13 +31,16 @@ fuzzy goal all the way to **scheduled, doable days** — decomposition is only h
 - Upgrade the **PM agent**: one batched clarify pass (only when needed) → research → a
   phased plan of **day-sized subtasks** (`estimate` + `energy`, first `startHere`).
 - Add a **Research capability** (hybrid web search via Tavily) *inside* the PM's plan turn.
-- Add a **Scheduler agent** that **auto-schedules** near-horizon subtasks onto days + prayer
-  windows, from a self-contained availability model, with ADHD-calm guardrails.
+- Add ONE **Scheduler agent** — a shared service that BOTH the capture flow and the PM call —
+  that **schedules-on-signal**: places loose tasks (by their time hint / urgency) and project
+  subtasks (near-horizon spread) onto days + prayer windows, from a self-contained availability
+  model, with ADHD-calm guardrails; leaves no-signal items in the backlog.
 
 **Non-goals (future)**
 - Real Google Calendar integration (design leaves an availability seam for it).
 - The scheduler learning the user's habits over time.
-- Changing the loose-task capture flow (it keeps suggest-then-confirm).
+- The Scheduler stays a SEPARATE agent (not folded into the PM), so loose tasks, subtasks, and
+  re-scheduling all reuse the one placement brain.
 
 ## 4. System architecture
 
@@ -73,12 +79,21 @@ the day-sized subtasks.)
 **Scheduler** — new `src/agent/scheduleContract.ts`:
 ```ts
 import type { AgentContext } from './contract';
-import type { Window, Energy } from '../types/item';
+import type { Window, Energy, Urgency } from '../types/item';
 
-export interface SchedulableSubtask { id: string; title: string; estimate?: string; energy?: Energy; }
-export interface SchedulePayload { subtasks: SchedulableSubtask[]; context: AgentContext; }
+export interface SchedulableSubtask {
+  id: string; title: string; estimate?: string; energy?: Energy;
+  timeContext?: string;   // spoken/parsed time hint, e.g. "Wednesday or weekends" — a signal
+  urgency?: Urgency;      // 'now'|'today'|'soon'|'someday' — a signal
+}
+export interface SchedulePayload {
+  subtasks: SchedulableSubtask[];
+  context: AgentContext;
+  spread?: boolean;       // true = project batch (fill near-horizon even w/o per-item signal);
+                          // false/omitted = loose = schedule-on-signal only (omit no-signal items)
+}
 export interface SchedulePlacement { subtaskId: string; day: string; window: Window; rationale?: string; }
-export interface ScheduleResult { placements: SchedulePlacement[]; }
+export interface ScheduleResult { placements: SchedulePlacement[]; }  // items with no placement stay in backlog
 ```
 
 ## 5. Flow (end-to-end)
@@ -94,6 +109,13 @@ export interface ScheduleResult { placements: SchedulePlacement[]; }
 5. **Auto-schedule:** app calls `agent:'schedule'` with the created subtasks + context →
    `{placements}` → app applies `scheduleItem(subtaskId, {date, window})` to each. Subtasks
    appear on their days; user can push/move/unschedule (existing controls).
+
+### Loose-task flow (also through the Scheduler)
+On a loose capture, after `addCaptureTask`, the app calls the SAME Scheduler with
+`{subtasks:[thatTask], context, spread:false}` — but ONLY when the task carries a signal
+(`timeContext` present, or `urgency` in `now`/`today`); no-signal tasks skip the call and stay
+in the backlog. A returned placement is applied via `scheduleItem`. So "buy a bag, Wednesday or
+weekends" → Scheduler → Wednesday · an open window.
 
 ## 6. Agent details
 
@@ -117,9 +139,17 @@ n8n project branch becomes: **Decide** LLM (given conversation → `{mode:'ask',
 ### 6c. Scheduler
 New `src/agent/scheduleSystemPrompt.ts` (`SCHEDULER_SYSTEM_PROMPT`, + n8n `agent:'schedule'`
 branch) and `src/agent/runScheduleAgent.ts` (mirrors `runProjectAgent`: same env transport,
-20s timeout, NEVER throws → deterministic local fallback). Places subtasks per the guardrails:
+20s timeout, NEVER throws → deterministic local fallback).
 
-**Guardrails (keep "auto" ADHD-calm):**
+**Policy — schedule-on-signal + spread:**
+- `spread:true` (project batch) → fill the near horizon: every subtask placed (subject to the
+  guardrails). The committed-project auto-schedule.
+- `spread:false` (loose task) → place ONLY if the item has a **signal**: a `timeContext` day
+  hint (parse "Wednesday"/"weekend"/"tomorrow"/"today" vs `context.now` → nearest such free
+  day) OR urgency `now`/`today` (→ today). **Omit** no-signal items — they stay in the backlog.
+  Per-item `timeContext`/`urgency` are honored under `spread:true` too.
+
+**Guardrails (keep placement ADHD-calm):**
 - **Availability** = prayer windows + `context.existingItems` (their `day`+`window`) + a
   **daily load cap** (default 3 planned items/day). *(Seam: swap availability source later.)*
 - **Near-horizon only:** schedule the current phase / ~next 7 days; later-phase subtasks stay
@@ -132,9 +162,12 @@ Every placement's `subtaskId` MUST be echoed verbatim from the payload's subtask
 prompt states this; the local fallback uses them directly), so the app can map each placement
 back to its Item.
 
-**Local fallback** (`localSchedule(subtasks, context)` in `src/state/schedule.ts`, pure &
-unit-tested): spread subtasks from today forward, ≤ load-cap/day, `deep`→morning window else
-`suggestCurrentWindow`/anytime, respecting days already at cap in `existingItems`.
+**Local fallback** (`localSchedule(subtasks, context, spread)` in `src/state/schedule.ts`, pure
+& unit-tested): `spread:true` → fill from today forward, ≤ load-cap/day, `deep`→morning else
+anytime, respecting days already at cap in `existingItems`. `spread:false` → for each item,
+place only on a signal: `parseDayHint(timeContext, today)` (weekday names / "tomorrow" /
+"weekend" / "today" → ISO date, else null) or urgency `now`/`today` → today; omit the rest.
+`parseDayHint` is a small pure helper (unit-tested).
 
 ## 7. App changes
 - `src/agent/contract.ts`: add `day?` to `ExistingItemRef`; build `existingItems` with `day`
@@ -146,8 +179,11 @@ unit-tested): spread subtasks from today forward, ≤ load-cap/day, `deep`→mor
 - `src/state/store.tsx`: add `subtasksOf(projectId): Item[]` helper — the project's leaf
   subtasks, i.e. flatMap over its milestones (`projectMilestones`) → their steps
   (`milestoneSteps`); each has the id `scheduleItem` needs.
-- `src/screens/CaptureScreen.tsx`: after `createProject`, gather `subtasksOf`, call
-  `runScheduleAgent`, apply `scheduleItem` per placement; show a brief "Scheduling…" state.
+- `src/screens/CaptureScreen.tsx`: (a) project plan → after `createProject`, gather
+  `subtasksOf`, call `runScheduleAgent({..., spread:true})`, apply `scheduleItem` per placement;
+  (b) loose task → after `addCaptureTask`, IF the task has a signal (`timeContext` or urgency
+  `now`/`today`), call `runScheduleAgent({subtasks:[thatTask], context, spread:false})` and
+  apply any placement; no-signal tasks skip the call. Brief "Scheduling…" state.
 - `src/screens/ProjectDetailScreen.tsx`: a **Reschedule** action (re-runs `runScheduleAgent`).
 - `runProjectAgent` normalize already tolerant; `estimate`/`energy` are additive.
 
