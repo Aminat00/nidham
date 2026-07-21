@@ -283,7 +283,7 @@ export function TodayScreen({ onOpenProfile }: { onOpenProfile: () => void }) {
 
         {/* Timeline */}
         <View style={styles.timeline}>
-          <View style={[styles.spine, { [startSide(isRTL)]: 18 }]} pointerEvents="none" />
+          <View style={[styles.spine, { [startSide(isRTL)]: 14 }]} pointerEvents="none" />
           {prayers.map((p) => {
             const children = childrenFor(p);
             const tesbihat = children.find((c) => c.category === 'tesbihat');
