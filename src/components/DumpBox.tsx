@@ -6,7 +6,7 @@
 
 import React, { useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
+import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync } from 'expo-audio';
 import { ArrowRightIcon, MicIcon } from './Icons';
 import { colors, ff, radius } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
@@ -55,7 +55,7 @@ export function DumpBox({
   // (Whisper through n8n). Never throws — a failed transcription just leaves the box as-is.
   const startNativeRecording = async () => {
     try {
-      const perm = await AudioModule.requestRecordingPermissionsAsync();
+      const perm = await requestRecordingPermissionsAsync();
       if (!perm.granted) {
         setListening(false);
         setMicError(true);
