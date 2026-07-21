@@ -6,5 +6,5 @@ web-build/
 *.log
 .DS_Store
 
-# Generated n8n workflow — build locally, don't commit
-docs/nidham-agent.n8n.json
+# Generated n8n workflows — build locally, don't commit
+docs/*.n8n.json

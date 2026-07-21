@@ -6,11 +6,13 @@
 
 import React, { useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Audio } from 'expo-av';
 import { ArrowRightIcon, MicIcon } from './Icons';
 import { colors, ff, radius } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { SAMPLE_CAPTURE } from '../data/samplePlan';
+import { transcribe } from '../voice/transcribe';
 
 /** Web Speech API constructor (browser only), and per-language recognition locale. */
 const SpeechRecognition =
@@ -37,6 +39,7 @@ export function DumpBox({
   const recRef = useRef<{ stop: () => void } | null>(null);
   const baseRef = useRef('');
   const gotSpeechRef = useRef(false);
+  const audioRecRef = useRef<Audio.Recording | null>(null);
 
   const submit = () => {
     if (busy || !text.trim()) return;
@@ -44,10 +47,52 @@ export function DumpBox({
     setText('');
   };
 
-  // Hold the mic to dictate: real Web Speech in the browser; on native (or if the
-  // API/mic is unavailable) we simulate by dropping in a sample on release.
+  // Native (iOS/Android): record with expo-av, then transcribe via the STT webhook
+  // (Whisper through n8n). Never throws — a failed transcription just leaves the box as-is.
+  const startNativeRecording = async () => {
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        setListening(false);
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const rec = new Audio.Recording();
+      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await rec.startAsync();
+      audioRecRef.current = rec;
+    } catch {
+      setListening(false);
+      audioRecRef.current = null;
+    }
+  };
+
+  const stopNativeRecording = async () => {
+    const rec = audioRecRef.current;
+    audioRecRef.current = null;
+    if (!rec) {
+      setListening(false);
+      return;
+    }
+    try {
+      await rec.stopAndUnloadAsync();
+      const uri = rec.getURI();
+      const spoken = uri ? await transcribe(uri, lang) : '';
+      if (spoken) setText((p) => (p.trim() ? p.trim() + ' ' + spoken : spoken));
+    } catch {
+      /* ignore — the mic simply does nothing */
+    }
+    setListening(false);
+  };
+
+  // Hold the mic to dictate: real Web Speech in the browser; expo-av + STT webhook on
+  // native. If neither is available it simulates by dropping in a sample on release.
   const startVoice = () => {
     setListening(true);
+    if (Platform.OS !== 'web') {
+      void startNativeRecording();
+      return;
+    }
     if (!SpeechRecognition) return;
     try {
       const Ctor = SpeechRecognition as new () => {
@@ -85,6 +130,10 @@ export function DumpBox({
   };
 
   const stopVoice = () => {
+    if (Platform.OS !== 'web') {
+      void stopNativeRecording();
+      return;
+    }
     setListening(false);
     if (recRef.current) {
       try {

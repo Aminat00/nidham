@@ -152,3 +152,34 @@ when the goal is vague, **max 3 questions**, then emit a plan of 2–4 milestone
 and, as always, falls back to a built-in interview + plan if the call fails — so the flow
 never breaks. Common n8n envelopes (`output`/`data`/`json`/`result`/array) are unwrapped
 automatically, same as the capture agent.
+
+## 5. Voice → text (Whisper)
+
+The mic records audio and sends it to a **second webhook** that runs Whisper (OpenAI)
+server-side. Import `docs/nidham-stt.n8n.json` (also generated locally, git-ignored). Three
+nodes: `Webhook (POST /nidham-stt)` → `Whisper (OpenAI transcription)` → `Respond {text}`.
+
+- **Request:** `multipart/form-data` with a `file` (the recording) + a `lang` field.
+- **Response:** `{ "text": "…the transcript…" }`.
+- Point the app at it: `EXPO_PUBLIC_STT_URL=https://<host>/webhook/nidham-stt`.
+- On **web** the browser's Web Speech API is used instead (no server needed); this webhook
+  is what powers the **native** (phone) mic. If unset, the native mic just does nothing.
+
+## 6. Setting the keys (both agents + voice)
+
+Keys live **only in n8n**, as credentials — never in the app, `.env`, or git.
+
+| Node | Credential type | Where to get the key |
+|---|---|---|
+| **Anthropic** (text agents) | `Anthropic API` | console.anthropic.com → API keys |
+| **Whisper** (voice) | `OpenAI API` | platform.openai.com → API keys |
+
+Steps in n8n:
+1. **Credentials → New** → search **Anthropic API** → paste your Anthropic key → Save.
+2. **Credentials → New** → search **OpenAI API** → paste your OpenAI key → Save.
+3. Open each workflow; on the **Anthropic** node (text) and the **Whisper** node (voice),
+   pick the matching credential from the dropdown.
+4. **Activate** each workflow, copy its **Production** webhook URL, and put the URLs in the
+   app's `.env` (`EXPO_PUBLIC_AGENT_URL`, `EXPO_PUBLIC_STT_URL`). Restart Metro.
+
+The app never sees either key — it only knows the two webhook URLs.
