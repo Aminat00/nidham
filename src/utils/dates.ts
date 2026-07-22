@@ -2,7 +2,7 @@
  * Small, timezone-safe date helpers. All functions take/return ISO date strings
  * ("YYYY-MM-DD") and anchor on UTC noon so day arithmetic never slips across a
  * DST/offset boundary. No hidden "today" — callers pass the reference day, which
- * keeps the demo deterministic (see DEMO_TODAY).
+ * keeps the demo deterministic (see TODAY).
  */
 
 /** Parse "YYYY-MM-DD" to a Date at UTC noon. */

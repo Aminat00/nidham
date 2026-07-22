@@ -18,7 +18,7 @@ import { useStore } from '../state/store';
 import { t as fmt, digits, WEEKDAYS, WINDOW_WORD } from '../i18n/strings';
 import { weekdayIndex } from '../utils/dates';
 import { prayerName, type PrayerKey } from '../data/prayers';
-import { DEMO_TODAY } from '../data/demo';
+import { TODAY } from '../data/demo';
 import type { Item, Window } from '../types/item';
 
 const PRAYER_WINDOWS = new Set<Window>(['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']);
@@ -115,7 +115,7 @@ export function ProjectDetailScreen({
                 steps.map((s) => {
                   const done = s.status === 'done';
                   const isCurrent = current?.id === s.id;
-                  const scheduledToday = s.day === DEMO_TODAY;
+                  const scheduledToday = s.day === TODAY;
                   return (
                     <Pressable key={s.id} style={[styles.stepCard, { flexDirection: row(isRTL) }, isCurrent && !done && styles.stepCardCurrent]} onPress={() => onOpenTask(s.id)} accessibilityRole="button">
                       <Pressable onPress={() => toggleDone(s.id)} style={[styles.checkbox, done && styles.checkboxOn]} accessibilityRole="checkbox" accessibilityState={{ checked: done }}>

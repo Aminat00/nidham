@@ -23,7 +23,7 @@ import { PrayerTimesProvider } from './src/data/PrayerTimesContext';
 import { AuthProvider, useAuth } from './src/state/auth';
 import { SettingsProvider } from './src/state/settings';
 import { ProfileScreen } from './src/screens/ProfileScreen';
-import { DEMO_TODAY } from './src/data/demo';
+import { TODAY } from './src/data/demo';
 import type { Lang } from './src/i18n/strings';
 
 function AppInner() {
@@ -83,7 +83,7 @@ function Shell() {
 
 function Gate() {
   return (
-    <PrayerTimesProvider date={DEMO_TODAY}>
+    <PrayerTimesProvider date={TODAY}>
       <StoreProvider>
         <Shell />
       </StoreProvider>

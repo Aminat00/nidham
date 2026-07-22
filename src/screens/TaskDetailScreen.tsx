@@ -17,7 +17,7 @@ import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
 import { t as fmt, AREA_LABEL, WINDOW_WORD, type Lang } from '../i18n/strings';
-import { DEMO_TODAY } from '../data/demo';
+import { TODAY } from '../data/demo';
 import { addDays } from '../utils/dates';
 import { prayerName, type PrayerKey } from '../data/prayers';
 import type { Window } from '../types/item';
@@ -25,8 +25,8 @@ import type { Window } from '../types/item';
 type DayMode = 'today' | 'tomorrow' | 'pick';
 
 function modeFor(date: string): DayMode {
-  if (date === DEMO_TODAY) return 'today';
-  if (date === addDays(DEMO_TODAY, 1)) return 'tomorrow';
+  if (date === TODAY) return 'today';
+  if (date === addDays(TODAY, 1)) return 'tomorrow';
   return 'pick';
 }
 
@@ -42,16 +42,16 @@ export function TaskDetailScreen({ taskId, onClose }: { taskId: string; onClose:
   const item = getItem(taskId);
 
   const [draftTitle, setDraftTitle] = useState(item?.title ?? '');
-  const [selectedDate, setSelectedDate] = useState(item?.day ?? DEMO_TODAY);
-  const [dayMode, setDayMode] = useState<DayMode>(modeFor(item?.day ?? DEMO_TODAY));
+  const [selectedDate, setSelectedDate] = useState(item?.day ?? TODAY);
+  const [dayMode, setDayMode] = useState<DayMode>(modeFor(item?.day ?? TODAY));
   const [selectedWindow, setSelectedWindow] = useState<Window>(item?.window ?? 'anytime');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [exactOn, setExactOn] = useState(Boolean(item?.time));
   const [selectedTime, setSelectedTime] = useState(item?.time ?? '');
 
   const selectMode = (mode: DayMode) => {
-    if (mode === 'today') setSelectedDate(DEMO_TODAY);
-    else if (mode === 'tomorrow') setSelectedDate(addDays(DEMO_TODAY, 1));
+    if (mode === 'today') setSelectedDate(TODAY);
+    else if (mode === 'tomorrow') setSelectedDate(addDays(TODAY, 1));
     setDayMode(mode);
   };
 

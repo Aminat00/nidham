@@ -1,5 +1,5 @@
 /**
- * App anchors. DEMO_TODAY / DEMO_NOW are the real current day + moment (resolved once at
+ * App anchors. TODAY / NOW_ISO are the real current day + moment (resolved once at
  * launch), so "today", schedule chips and the Hijri header all track the real calendar.
  * PRAYER_TIMES stay as fallback demo times until a live source overrides them.
  */
@@ -14,14 +14,14 @@ function localDateISO(d: Date): string {
 }
 
 /** "Today" is the real current day now — the app is live (auth-gated), not a frozen demo. */
-export const DEMO_TODAY = localDateISO(new Date());
+export const TODAY = localDateISO(new Date());
 
 /** ISO 8601 "now" sent to the agent as context.now — the real current moment. */
-export const DEMO_NOW_ISO = new Date().toISOString();
+export const NOW_ISO = new Date().toISOString();
 
 export const USER_NAME = 'Yusuf';
 
-/** The five daily prayers for DEMO_TODAY (times from the design). */
+/** The five daily prayers for TODAY (times from the design). */
 export const PRAYER_TIMES: PrayerTimes = {
   fajr: '04:21',
   dhuhr: '13:02',

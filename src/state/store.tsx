@@ -21,7 +21,7 @@ import { flattenProjectPlan } from './flattenProject';
 import { runAgent } from '../agent/runAgent';
 import type { ProjectPlan } from '../agent/projectContract';
 import { currentStep, projectProgress, milestonesOf, stepsOf, type ProjectProgress } from '../data/projects';
-import { DEMO_NOW_ISO, DEMO_TODAY, PRAYER_TIMES } from '../data/demo';
+import { NOW_ISO, TODAY, PRAYER_TIMES } from '../data/demo';
 import { addDays, dayDiff } from '../utils/dates';
 import { loadState, saveState, clearState, PersistedState } from './persistence';
 import { usePrayerTimes } from '../data/PrayerTimesContext';
@@ -273,7 +273,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const res = await runAgent({
         capture: trimmed,
         context: {
-          now: DEMO_NOW_ISO,
+          now: NOW_ISO,
           lang,
           prayerTimes: live?.times ?? PRAYER_TIMES,
           existingItems,
@@ -380,7 +380,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       (i) => i.day && i.status !== 'done' && (i.category === 'task' || i.category === 'errand'),
     );
     const bucketOf = (day: string): TimeBucket => {
-      const d = dayDiff(DEMO_TODAY, day);
+      const d = dayDiff(TODAY, day);
       if (d < 0) return 'overdue';
       if (d === 0) return 'today';
       if (d === 1) return 'tomorrow';
@@ -497,7 +497,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         [id]: {
           ...it,
-          day: DEMO_TODAY,
+          day: TODAY,
           window,
           sortTime: addMinutes(windowBaseTime(window, timesRef.current), 10),
           status: 'pending',
@@ -537,7 +537,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<StoreValue>(
     () => ({
-      today: DEMO_TODAY,
+      today: TODAY,
       phase,
       summary,
       feed,

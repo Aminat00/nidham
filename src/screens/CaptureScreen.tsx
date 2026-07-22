@@ -25,7 +25,7 @@ import { runScheduleAgent } from '../agent/runScheduleAgent';
 import type { ConversationTurn } from '../agent/projectContract';
 import type { CaptureTask } from '../agent/captureContract';
 import type { Window } from '../types/item';
-import { DEMO_NOW_ISO, PRAYER_TIMES } from '../data/demo';
+import { NOW_ISO, PRAYER_TIMES } from '../data/demo';
 
 type Entry =
   | { kind: 'user'; text: string }
@@ -49,7 +49,7 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
 
   /** Busy map for the schedule agent — every currently-scheduled item, day included. */
   const buildContext = () => ({
-    now: DEMO_NOW_ISO,
+    now: NOW_ISO,
     lang,
     prayerTimes: times,
     existingItems: scheduledItems().map((i) => ({ id: i.id, title: i.title, window: i.window, day: i.day })),

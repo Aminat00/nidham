@@ -10,7 +10,7 @@
 import type { Item } from '../types/item';
 import type { Lang } from '../i18n/strings';
 import { digits } from '../i18n/strings';
-import { DEMO_TODAY, PRAYER_TIMES, NIGHT_TIMES } from './demo';
+import { TODAY, PRAYER_TIMES, NIGHT_TIMES } from './demo';
 import { buildInitialFeed } from './samplePlan';
 import { flattenResponse } from '../state/flatten';
 import { PrayerKey } from './prayers';
@@ -48,11 +48,11 @@ function notes(lang: Lang): Record<string, string> {
 
 function prayer(key: PrayerKey, sortTime: string, status: Item['status']): Item {
   const window = (key === 'tahajjud' ? 'fajr' : key === 'witr' ? 'isha' : key) as Item['window'];
-  return { id: `p_${key}`, title: key, category: 'prayer', day: DEMO_TODAY, window, sortTime, urgency: 'today', energy: 'light', status, protected: true };
+  return { id: `p_${key}`, title: key, category: 'prayer', day: TODAY, window, sortTime, urgency: 'today', energy: 'light', status, protected: true };
 }
 
 function tesbihat(key: PrayerKey, sortTime: string, status: Item['status']): Item {
-  return { id: `t_${key}`, title: `${key} tesbihat`, category: 'tesbihat', day: DEMO_TODAY, window: key as Item['window'], sortTime, urgency: 'today', energy: 'light', parentId: `p_${key}`, status };
+  return { id: `t_${key}`, title: `${key} tesbihat`, category: 'tesbihat', day: TODAY, window: key as Item['window'], sortTime, urgency: 'today', energy: 'light', parentId: `p_${key}`, status };
 }
 
 interface TaskDef {
@@ -73,7 +73,7 @@ function task(def: TaskDef, lang: Lang, N: Record<string, string>): Item {
     id: `x_${def.id}`,
     title: g(TITLES[key], lang),
     category: def.cat,
-    day: DEMO_TODAY,
+    day: TODAY,
     window: def.window,
     sortTime: def.sortTime,
     urgency: def.urgency ?? 'today',
@@ -120,7 +120,7 @@ export function buildSeed(lang: Lang): { items: Item[]; capturedIds: string[] } 
   const tasks = taskDefs.map((d) => task(d, lang, N));
 
   // Pre-scheduled Capture feed (other days).
-  const feed = buildInitialFeed(DEMO_TODAY, lang);
+  const feed = buildInitialFeed(TODAY, lang);
   const { items: feedItems } = flattenResponse({ summary: '', items: feed.items });
 
   return { items: [...prayers, ...tesbihats, ...tasks, ...feedItems], capturedIds: feed.ids };
