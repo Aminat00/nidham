@@ -145,23 +145,13 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
           { kind: 'user', text: trimmed },
           { kind: 'task', taskId: id, title: res.task.title, scheduled: !!res.task.scheduleToday },
         ]);
-      } else if (res.kind === 'ask') {
-        // The agent already returned the first interview question — do not call runProjectAgent again.
-        modeRef.current = 'interview';
-        convoRef.current = [{ role: 'user', text: trimmed }, { role: 'agent', text: res.question }];
-        setThread((t) => [...t, { kind: 'user', text: trimmed }, { kind: 'agent', text: res.question }]);
       } else {
-        // plan — rare on the first turn, but handle it like runTurn's plan branch.
-        const { id, subtasks } = createProject(res.project);
-        await autoScheduleProject(subtasks);
-        const steps = res.project.milestones[0]?.steps ?? [];
-        const first = steps.find((s) => s.startHere) ?? steps[0];
-        setThread((t) => [
-          ...t,
-          { kind: 'user', text: trimmed },
-          { kind: 'agent', text: res.summary },
-          { kind: 'plan', projectId: id, title: res.project.title, firstStep: first?.title },
-        ]);
+        // route → it's a project. Hand the goal straight to the Project agent (the AI Agent),
+        // which owns the whole interview + research + plan from question one.
+        modeRef.current = 'interview';
+        convoRef.current = [{ role: 'user', text: trimmed }];
+        setThread((t) => [...t, { kind: 'user', text: trimmed }]);
+        await runTurn(convoRef.current);
       }
     } finally {
       setBusy(false);

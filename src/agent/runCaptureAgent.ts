@@ -1,14 +1,12 @@
 /**
  * runCaptureAgent — the FIRST turn of a capture. Mirrors runProjectAgent's transport
- * (same env, 20s timeout, never throws). Returns a clean task, or routes to the interview
- * (ask/plan). On unconfigured/failure it falls back to the local triage so capture always
- * works offline (losing only the smart parsing).
+ * (same env, 20s timeout, never throws). Classifies: a small thing → a clean task; a
+ * project-sized goal → `route` (the app then hands it to the Project agent). On
+ * unconfigured/failure it falls back to the local triage so capture always works offline.
  */
 import type { CapturePayload, CaptureResult, CaptureTask } from './captureContract';
-import type { ProjectPayload, ProjectPlan } from './projectContract';
 import { CAPTURE_SYSTEM_PROMPT } from './captureSystemPrompt';
 import { triageCapture } from './triage';
-import { fallbackProjectTurn } from './projectFallback';
 import type { Area } from '../types/item';
 
 type AgentMode = 'webhook' | 'direct';
@@ -30,13 +28,7 @@ function localFallback(payload: CapturePayload, reason: string): CaptureResult {
   console.warn(`[runCaptureAgent] using fallback — ${reason}`);
   const text = payload.capture.trim();
   const tri = triageCapture(text);
-  if (tri.kind === 'project') {
-    const pp: ProjectPayload = { conversation: [{ role: 'user', text }], context: payload.context };
-    const turn = fallbackProjectTurn(pp);
-    return turn.type === 'ask'
-      ? { kind: 'ask', question: turn.question }
-      : { kind: 'plan', summary: turn.summary, project: turn.project };
-  }
+  if (tri.kind === 'project') return { kind: 'route', to: 'project' };
   const area: Area = tri.area === 'project' ? 'personal' : tri.area;
   const task: CaptureTask = {
     title: text,
@@ -74,13 +66,9 @@ function normalize(raw: unknown): CaptureResult | null {
         } };
       }
     }
-    if (kind === 'ask' && typeof v.question === 'string') return { kind: 'ask', question: v.question };
-    if (kind === 'plan' && typeof v.summary === 'string' && v.project && typeof v.project === 'object') {
-      const proj = v.project as Record<string, unknown>;
-      if (typeof proj.title === 'string' && Array.isArray(proj.milestones)) {
-        return { kind: 'plan', summary: v.summary, project: v.project as ProjectPlan };
-      }
-    }
+    // Any recognized non-task response means "it's a project" → hand off to the Project agent.
+    // (Covers the new `route` and, for back-compat, an older `ask`/`plan` capture prompt.)
+    if (kind === 'route' || kind === 'ask' || kind === 'plan') return { kind: 'route', to: 'project' };
   }
   return null;
 }

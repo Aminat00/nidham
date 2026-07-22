@@ -1,11 +1,11 @@
 /**
- * Capture agent contract — the FIRST turn of a capture. The agent classifies the raw
- * text and returns EITHER a clean parsed task, OR the first interview question / a plan
- * (project branch, reusing the project contract). Continuation turns use runProjectAgent.
+ * Capture agent contract — the FIRST turn of a capture. The agent is a pure classifier:
+ * a small thing → a clean parsed task; a project-sized goal → `route` (hand off to the
+ * Project agent, which then owns the whole interview + research + plan). The capture agent
+ * never asks the project's questions itself.
  */
 import type { Area, Urgency, Energy } from '../types/item';
 import type { AgentContext } from './contract';
-import type { ProjectPlan } from './projectContract';
 
 /** A clean, structured loose task — the agent's real deliverable (not a raw sentence). */
 export interface CaptureTask {
@@ -20,8 +20,7 @@ export interface CaptureTask {
 
 export type CaptureResult =
   | { kind: 'task'; task: CaptureTask }
-  | { kind: 'ask'; question: string }
-  | { kind: 'plan'; summary: string; project: ProjectPlan };
+  | { kind: 'route'; to: 'project' };
 
 /** Request body (app → agent) for a fresh capture. */
 export interface CapturePayload {

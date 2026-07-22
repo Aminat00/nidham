@@ -24,8 +24,9 @@ describe('runCaptureAgent (unconfigured → local fallback)', () => {
     const r = await runCaptureAgent(p('call the bank today'));
     expect(r.kind === 'task' && r.task.scheduleToday).toBe(true);
   });
-  it('routes a project-sized goal into the interview', async () => {
+  it('routes a project-sized goal to the Project agent', async () => {
     const r = await runCaptureAgent(p('start a business'));
-    expect(['ask', 'plan']).toContain(r.kind);
+    expect(r.kind).toBe('route');
+    if (r.kind === 'route') expect(r.to).toBe('project');
   });
 });
