@@ -25,7 +25,7 @@ const MODEL = process.env.EXPO_PUBLIC_AGENT_MODEL ?? 'claude-sonnet-5';
 // The project turn runs a research-backed plan (Tavily search + a large multi-phase
 // generation) in n8n — it legitimately takes 25-45s. A 20s cap aborted mid-run and
 // silently dropped the real plan onto the fallback. Give it real room; override via env.
-const REQUEST_TIMEOUT_MS = Number(process.env.EXPO_PUBLIC_PROJECT_TIMEOUT_MS) || 60_000;
+const REQUEST_TIMEOUT_MS = Number(process.env.EXPO_PUBLIC_PROJECT_TIMEOUT_MS) || 120_000;
 
 export function isProjectAgentConfigured(): boolean {
   if (MODE === 'webhook') return URL.trim().length > 0;
