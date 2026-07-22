@@ -154,7 +154,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       for (const it of items) byId[it.id] = it;
       if (persisted) {
         for (const id of Object.keys(persisted.overrides)) {
-          if (byId[id]) byId[id] = { ...byId[id], ...persisted.overrides[id] };
+          const base = byId[id];
+          if (!base) continue;
+          const ov = persisted.overrides[id];
+          // Day-flow items keep the seed's real-today day/window — only their done status persists.
+          byId[id] = DAYFLOW_CATS.has(base.category) ? { ...base, status: ov.status } : { ...base, ...ov };
         }
         for (const c of persisted.captures) byId[c.id] = c;
         const deleted = new Set(persisted.deletedIds ?? []);
@@ -214,7 +218,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     for (const item of items) {
       if (deletedIdsRef.current.has(item.id)) continue; // stay deleted across a reseed
       const prior = snapshot[item.id];
-      next[item.id] = prior ? { ...item, status: prior.status, day: prior.day } : item;
+      // Day-flow keeps the fresh seed day/window; other seed items keep the user's day too.
+      next[item.id] = prior
+        ? DAYFLOW_CATS.has(item.category)
+          ? { ...item, status: prior.status }
+          : { ...item, status: prior.status, day: prior.day }
+        : item;
     }
     for (const id of Object.keys(snapshot)) {
       if (!(id in next)) next[id] = snapshot[id]; // user captures
