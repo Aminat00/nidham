@@ -74,7 +74,6 @@ function NowStrip({ prayer, time, mode }: { prayer: Item; time: string; mode: 'n
   if (!key) return null;
   const script = prayerScript(key, lang);
   const isNow = mode === 'now';
-  const sub = isNow ? fmt(strings.nowStripSub, { prayer: prayerName(key, lang) }) : strings.upNext;
   return (
     <View style={[styles.nowStrip, { flexDirection: row(isRTL) }]}>
       <View style={styles.timeBadge}>
@@ -85,9 +84,13 @@ function NowStrip({ prayer, time, mode }: { prayer: Item; time: string; mode: 'n
           <Text style={styles.nowPrayer}>{prayerName(key, lang)}</Text>
           {script && <Text style={styles.scriptSm}>{script}</Text>}
         </View>
-        <Text style={[styles.nowSub, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{sub}</Text>
+        {isNow && (
+          <Text style={[styles.nowSub, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>
+            {fmt(strings.nowStripSub, { prayer: prayerName(key, lang) })}
+          </Text>
+        )}
       </View>
-      {isNow && <Badge label={strings.now} tone="nowStrip" />}
+      <Badge label={isNow ? strings.now : strings.upNext} tone="nowStrip" />
     </View>
   );
 }
