@@ -67,7 +67,7 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, empty && styles.contentEmpty]} showsVerticalScrollIndicator={false}>
       <View style={styles.headerBlock}>
         <View style={[styles.headerRow, { flexDirection: row(isRTL) }]}>
           <View style={[styles.titleRow, { flexDirection: row(isRTL) }]}>
@@ -212,7 +212,8 @@ function ZoneHeader({ tone, title, subtitle, count, isRTL, lang }: { tone: ZoneT
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
-  content: { flexGrow: 1, paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 40, gap: 18 },
+  content: { paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 40, gap: 18 },
+  contentEmpty: { flexGrow: 1 },
   headerBlock: { gap: 3, paddingHorizontal: 2 },
   headerRow: { alignItems: 'center', justifyContent: 'space-between' },
   titleRow: { alignItems: 'baseline', gap: 9 },
