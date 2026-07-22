@@ -37,6 +37,14 @@ describe('normalize — n8n AI Agent output shapes', () => {
     expect(turn?.type).toBe('ask');
     if (turn?.type === 'ask') expect(turn.question).toContain('Tonguç');
   });
+  it('accepts prose BEFORE the JSON — the real "Good — the research confirms… {json}" case', () => {
+    const real = [
+      { output: 'Good — the research confirms this is a real niche. Let me ask.\n\n{"type":"ask","question":"Which platform?"}' },
+    ];
+    const turn = normalize(real);
+    expect(turn?.type).toBe('ask');
+    if (turn?.type === 'ask') expect(turn.question).toBe('Which platform?');
+  });
   it('rejects prose / non-JSON / empty', () => {
     expect(normalize('Got it. What would done look like?')).toBeNull();
     expect(normalize({ output: 'just some text' })).toBeNull();
