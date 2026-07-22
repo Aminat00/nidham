@@ -55,8 +55,8 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
     existingItems: scheduledItems().map((i) => ({ id: i.id, title: i.title, window: i.window, day: i.day })),
   });
 
-  const applyPlacements = (placements: { subtaskId: string; day: string; window: Window }[]) => {
-    for (const p of placements) scheduleItem(p.subtaskId, { date: p.day, window: p.window });
+  const applyPlacements = (placements: { subtaskId: string; day: string; window: Window; time?: string }[]) => {
+    for (const p of placements) scheduleItem(p.subtaskId, { date: p.day, window: p.window, time: p.time ?? null });
   };
 
   /** After a project plan lands, spread its subtasks across the near horizon. */

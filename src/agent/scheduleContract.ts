@@ -26,6 +26,7 @@ export interface SchedulePlacement {
   subtaskId: string;   // echoed verbatim from the payload
   day: string;         // ISO date "YYYY-MM-DD"
   window: Window;      // prayer-anchored
+  time?: string;       // "HH:mm" exact clock time, set only when the hint named one
   rationale?: string;
 }
 

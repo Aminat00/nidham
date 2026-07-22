@@ -1,6 +1,33 @@
-import { scheduledFields, captureTaskToItem, localSchedule, parseDayHint, type Times } from './schedule';
+import { scheduledFields, captureTaskToItem, localSchedule, parseDayHint, parseExactTime, windowForTime, type Times } from './schedule';
 import type { CaptureTask } from '../agent/captureContract';
 import type { SchedulableSubtask } from '../agent/scheduleContract';
+
+describe('parseExactTime', () => {
+  it('parses am/pm (wins over a bare 24h match)', () => {
+    expect(parseExactTime('call at 3pm')).toBe('15:00');
+    expect(parseExactTime('meet 3:30 pm')).toBe('15:30');
+    expect(parseExactTime('gym 9am')).toBe('09:00');
+    expect(parseExactTime('12am')).toBe('00:00');
+    expect(parseExactTime('12pm')).toBe('12:00');
+  });
+  it('parses a 24h HH:mm', () => {
+    expect(parseExactTime('standup 14:30')).toBe('14:30');
+  });
+  it('returns null when there is no time (and ignores false positives like "amazing")', () => {
+    expect(parseExactTime('call mom')).toBeNull();
+    expect(parseExactTime('3 amazing ideas')).toBeNull();
+    expect(parseExactTime(undefined)).toBeNull();
+  });
+});
+
+describe('windowForTime', () => {
+  const t: Times = { fajr: '03:51', dhuhr: '13:15', asr: '17:13', maghrib: '20:39', isha: '22:21' };
+  it('maps a clock time to the prayer window it falls in', () => {
+    expect(windowForTime('15:00', t)).toBe('dhuhr'); // after Dhuhr, before Asr
+    expect(windowForTime('18:00', t)).toBe('asr');
+    expect(windowForTime('02:00', t)).toBe('anytime'); // before Fajr
+  });
+});
 
 const times: Times = { fajr: '03:51', dhuhr: '13:15', asr: '17:13', maghrib: '20:39', isha: '22:21' };
 
@@ -92,5 +119,12 @@ describe('localSchedule — on-signal (loose)', () => {
     expect(p.find((x) => x.subtaskId === 'a')?.day).toBe('2026-07-21');
     expect(p.find((x) => x.subtaskId === 'b')?.day).toBe('2026-07-22'); // next Wednesday
     expect(p.find((x) => x.subtaskId === 'c')).toBeUndefined(); // omitted (no signal)
+  });
+  it('pulls an exact clock time out of the hint (day + time + matching window)', () => {
+    const p = localSchedule([{ id: 'd', title: 'dentist', timeContext: 'Wednesday at 3pm' }], ctx(), false);
+    const d = p.find((x) => x.subtaskId === 'd');
+    expect(d?.day).toBe('2026-07-22'); // next Wednesday
+    expect(d?.time).toBe('15:00');     // 3pm
+    expect(d?.window).toBe('dhuhr');   // 15:00 falls in the Dhuhr window
   });
 });

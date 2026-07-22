@@ -24,7 +24,10 @@ RULES (always)
 - Energy-aware: "deep" → the day's peak window ("morning" or "dhuhr"); "light"/"admin" →
   short gaps ("asr","maghrib","isha","anytime"). Avoid two "deep" on the same day.
 - window ∈ {fajr,morning,dhuhr,afternoon,asr,maghrib,isha,evening,anytime}. Never over a prayer.
+- EXACT TIME: if a subtask's "timeContext" names a clock time (e.g. "3pm", "9am", "14:30"),
+  set "time" to it as 24h "HH:mm", and pick the "window" that clock time falls in. If no clock
+  time is given, omit "time".
 - Echo each item's "id" EXACTLY as its "subtaskId". Write "rationale" in context.lang.
 
 OUTPUT: return ONLY JSON: { "placements": [ { "subtaskId","day":"YYYY-MM-DD","window",
-  "rationale":"<short>" } ] }. Omitted items simply don't appear. No prose, no code fences.`;
+  "time"?:"HH:mm","rationale":"<short>" } ] }. Omitted items simply don't appear. No prose, no code fences.`;

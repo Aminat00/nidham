@@ -98,7 +98,42 @@ export function parseDayHint(hint: string | undefined, todayIso: string): string
   return null;
 }
 
-function place(sub: SchedulableSubtask, day: string): SchedulePlacement {
+/** Extract an exact clock time as "HH:mm" (24h) from a phrase, or null. Handles "3pm",
+ * "3:30 pm", "9am", "14:30". am/pm wins over a bare 24h match. */
+export function parseExactTime(hint: string | undefined): string | null {
+  if (!hint) return null;
+  const h = hint.toLowerCase();
+  const ampm = h.match(/\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?(?![a-z])/);
+  if (ampm) {
+    let hh = parseInt(ampm[1], 10);
+    const mm = ampm[2] ? parseInt(ampm[2], 10) : 0;
+    if (hh >= 1 && hh <= 12 && mm <= 59) {
+      if (hh === 12) hh = ampm[3] === 'p' ? 12 : 0;
+      else if (ampm[3] === 'p') hh += 12;
+      return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+    }
+  }
+  const h24 = h.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (h24) return `${h24[1].padStart(2, '0')}:${h24[2]}`;
+  return null;
+}
+
+/** The prayer window an exact "HH:mm" falls into (before Fajr → anytime). */
+export function windowForTime(hhmm: string, t: Times): Window {
+  const mins = hhmmToMin(hhmm);
+  if (mins < hhmmToMin(t.fajr)) return 'anytime';
+  const seq: Array<[Window, number]> = [
+    ['fajr', hhmmToMin(t.fajr)], ['dhuhr', hhmmToMin(t.dhuhr)], ['asr', hhmmToMin(t.asr)],
+    ['maghrib', hhmmToMin(t.maghrib)], ['isha', hhmmToMin(t.isha)],
+  ];
+  let cur: Window = 'fajr';
+  for (const [w, m] of seq) if (mins >= m) cur = w;
+  return cur;
+}
+
+function place(sub: SchedulableSubtask, day: string, times: Times): SchedulePlacement {
+  const exact = parseExactTime(sub.timeContext);
+  if (exact) return { subtaskId: sub.id, day, window: windowForTime(exact, times), time: exact, rationale: `at ${exact}` };
   const deep = sub.energy === 'deep';
   const window: Window = deep ? 'morning' : 'anytime';
   return { subtaskId: sub.id, day, window, rationale: deep ? 'deep work → morning' : 'placed in an open slot' };
@@ -113,6 +148,7 @@ function place(sub: SchedulableSubtask, day: string): SchedulePlacement {
  */
 export function localSchedule(subtasks: SchedulableSubtask[], context: AgentContext, spread = false): SchedulePlacement[] {
   const today = context.now.slice(0, 10);
+  const times = context.prayerTimes;
   const placements: SchedulePlacement[] = [];
   if (spread) {
     const dayCount: Record<string, number> = {};
@@ -125,12 +161,12 @@ export function localSchedule(subtasks: SchedulableSubtask[], context: AgentCont
         if ((dayCount[date] ?? 0) < LOAD_CAP) { placedDay = date; dayCount[date] = (dayCount[date] ?? 0) + 1; cursor = d; break; }
       }
       if (!placedDay) break;
-      placements.push(place(sub, placedDay));
+      placements.push(place(sub, placedDay, times));
     }
   } else {
     for (const sub of subtasks) {
       const target = sub.urgency === 'now' || sub.urgency === 'today' ? today : parseDayHint(sub.timeContext, today);
-      if (target) placements.push(place(sub, target));
+      if (target) placements.push(place(sub, target, times));
     }
   }
   return placements;

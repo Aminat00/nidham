@@ -74,7 +74,7 @@ export function ProjectDetailScreen({ projectId, onClose }: { projectId: string;
     };
     const subtasks = subs.map((i) => ({ id: i.id, title: i.title, estimate: i.note ?? undefined, energy: i.energy }));
     const { placements } = await runScheduleAgent({ subtasks, context: ctx, spread: true });
-    for (const p of placements) scheduleItem(p.subtaskId, { date: p.day, window: p.window });
+    for (const p of placements) scheduleItem(p.subtaskId, { date: p.day, window: p.window, time: p.time ?? null });
   };
 
   const meta =

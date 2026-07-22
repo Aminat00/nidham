@@ -45,7 +45,8 @@ function normalize(raw: unknown): ScheduleResult | null {
       if (!p || typeof p !== 'object') continue;
       const v = p as Record<string, unknown>;
       if (typeof v.subtaskId === 'string' && typeof v.day === 'string' && typeof v.window === 'string' && WINDOWS.includes(v.window as Window)) {
-        placements.push({ subtaskId: v.subtaskId, day: v.day, window: v.window as Window, rationale: typeof v.rationale === 'string' ? v.rationale : undefined });
+        const time = typeof v.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.time) ? v.time : undefined;
+        placements.push({ subtaskId: v.subtaskId, day: v.day, window: v.window as Window, ...(time ? { time } : {}), rationale: typeof v.rationale === 'string' ? v.rationale : undefined });
       }
     }
     if (placements.length) return { placements };
