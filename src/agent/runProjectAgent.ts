@@ -12,6 +12,7 @@
 import type { ProjectPayload, ProjectPlan, ProjectTurn } from './projectContract';
 import { PROJECT_SYSTEM_PROMPT } from './projectSystemPrompt';
 import { fallbackProjectTurn } from './projectFallback';
+import { candidateObjects } from './unwrap';
 
 type AgentMode = 'webhook' | 'direct';
 
@@ -54,15 +55,9 @@ function asTurn(value: unknown): ProjectTurn | null {
   return null;
 }
 
-/** Unwrap common n8n envelopes, then validate. */
-function normalize(raw: unknown): ProjectTurn | null {
-  const candidates: unknown[] = [raw];
-  if (raw && typeof raw === 'object') {
-    const r = raw as Record<string, unknown>;
-    candidates.push(r.output, r.data, r.json, r.result, r.response);
-    if (Array.isArray(r)) candidates.push(r[0]);
-  }
-  for (const c of candidates) {
+/** Unwrap whatever the transport returned (string / envelope / array) into a ProjectTurn. */
+export function normalize(raw: unknown): ProjectTurn | null {
+  for (const c of candidateObjects(raw)) {
     const turn = asTurn(c);
     if (turn) return turn;
   }

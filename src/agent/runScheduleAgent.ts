@@ -6,6 +6,7 @@
 import type { SchedulePayload, ScheduleResult, SchedulePlacement } from './scheduleContract';
 import { SCHEDULER_SYSTEM_PROMPT } from './scheduleSystemPrompt';
 import { localSchedule } from '../state/schedule';
+import { candidateObjects } from './unwrap';
 import type { Window } from '../types/item';
 
 type AgentMode = 'webhook' | 'direct';
@@ -30,15 +31,8 @@ function fallback(payload: SchedulePayload, reason: string): ScheduleResult {
 }
 
 function normalize(raw: unknown): ScheduleResult | null {
-  const candidates: unknown[] = [raw];
-  if (raw && typeof raw === 'object') {
-    const r = raw as Record<string, unknown>;
-    candidates.push(r.output, r.data, r.json, r.result, r.response);
-    if (Array.isArray(raw)) candidates.push(raw[0]);
-  }
-  for (const c of candidates) {
-    if (!c || typeof c !== 'object') continue;
-    const arr = (c as Record<string, unknown>).placements;
+  for (const c of candidateObjects(raw)) {
+    const arr = c.placements;
     if (!Array.isArray(arr)) continue;
     const placements: SchedulePlacement[] = [];
     for (const p of arr) {

@@ -51,12 +51,15 @@ const MILESTONES: Array<{ title: L3; steps: L3[] }> = [
   },
 ];
 
-/** Strip leading intent phrases and capitalize → a clean project title. */
+/** First clause, lead-phrase stripped, capped to ~8 words → a clean, short project title. */
 function titleFromGoal(goal: string, lang: Lang): string {
-  let t = goal.trim();
+  // Keep only the first sentence/clause so a rambling capture doesn't become the title.
+  let t = goal.trim().split(/[.!?\n]/)[0]?.trim() ?? '';
   if (lang === 'en') t = t.replace(/^(i\s+want\s+to|i'?d\s+like\s+to|i\s+need\s+to|let'?s|please|start|begin)\s+/i, '');
   t = t.trim();
   if (!t) return { en: 'New project', tr: 'Yeni proje', ar: 'مشروع جديد' }[lang];
+  const words = t.split(/\s+/);
+  if (words.length > 8) t = words.slice(0, 8).join(' ') + '…';
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 

@@ -1,5 +1,49 @@
 import type { ProjectPayload } from './projectContract';
-import { runProjectAgent, isProjectAgentConfigured } from './runProjectAgent';
+import { runProjectAgent, isProjectAgentConfigured, normalize } from './runProjectAgent';
+
+const PLAN = {
+  type: 'plan',
+  summary: 'Here is a plan',
+  project: { title: 'Learn Arabic', milestones: [{ title: 'Basics', steps: [{ title: 'Alphabet' }] }] },
+};
+const ASK = { type: 'ask', question: 'What does done look like?' };
+
+describe('normalize — n8n AI Agent output shapes', () => {
+  it('accepts a plain turn object', () => {
+    expect(normalize(ASK)?.type).toBe('ask');
+    expect(normalize(PLAN)?.type).toBe('plan');
+  });
+  it('accepts a JSON string (n8n default when output-format is off)', () => {
+    expect(normalize(JSON.stringify(PLAN))?.type).toBe('plan');
+  });
+  it('accepts an { output: <stringified JSON> } envelope — the real failing case', () => {
+    expect(normalize({ output: JSON.stringify(PLAN) })?.type).toBe('plan');
+    expect(normalize({ output: JSON.stringify(ASK) })?.type).toBe('ask');
+  });
+  it('accepts an { output: <object> } envelope', () => {
+    expect(normalize({ output: PLAN })?.type).toBe('plan');
+  });
+  it('strips a ```json code fence', () => {
+    expect(normalize('```json\n' + JSON.stringify(PLAN) + '\n```')?.type).toBe('plan');
+  });
+  it('unwraps an array', () => {
+    expect(normalize([{ output: PLAN }])?.type).toBe('plan');
+  });
+  it('accepts the real n8n payload — [{ output: <stringified ask> }]', () => {
+    const real = [
+      { output: '{"type":"ask","question":"Got it — sounds like you\'re researching Tonguç Akademi. Which grade(s)?"}' },
+    ];
+    const turn = normalize(real);
+    expect(turn?.type).toBe('ask');
+    if (turn?.type === 'ask') expect(turn.question).toContain('Tonguç');
+  });
+  it('rejects prose / non-JSON / empty', () => {
+    expect(normalize('Got it. What would done look like?')).toBeNull();
+    expect(normalize({ output: 'just some text' })).toBeNull();
+    expect(normalize('')).toBeNull();
+    expect(normalize(null)).toBeNull();
+  });
+});
 
 const payload: ProjectPayload = {
   conversation: [{ role: 'user', text: 'start a business' }],

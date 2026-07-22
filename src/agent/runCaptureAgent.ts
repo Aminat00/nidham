@@ -7,6 +7,7 @@
 import type { CapturePayload, CaptureResult, CaptureTask } from './captureContract';
 import { CAPTURE_SYSTEM_PROMPT } from './captureSystemPrompt';
 import { triageCapture } from './triage';
+import { candidateObjects } from './unwrap';
 import type { Area } from '../types/item';
 
 type AgentMode = 'webhook' | 'direct';
@@ -43,15 +44,7 @@ function localFallback(payload: CapturePayload, reason: string): CaptureResult {
 
 /** Narrow an unknown response (task branch OR project branch) into a CaptureResult. */
 function normalize(raw: unknown): CaptureResult | null {
-  const candidates: unknown[] = [raw];
-  if (raw && typeof raw === 'object') {
-    const r = raw as Record<string, unknown>;
-    candidates.push(r.output, r.data, r.json, r.result, r.response);
-    if (Array.isArray(raw)) candidates.push(raw[0]);
-  }
-  for (const c of candidates) {
-    if (!c || typeof c !== 'object') continue;
-    const v = c as Record<string, unknown>;
+  for (const v of candidateObjects(raw)) {
     const kind = v.kind ?? (v.type as unknown); // project branch may use `type`
     if (kind === 'task' && v.task && typeof v.task === 'object') {
       const t = v.task as Record<string, unknown>;
