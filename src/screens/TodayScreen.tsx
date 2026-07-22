@@ -169,12 +169,27 @@ function liveTimeFor(key: PrayerKey, live: LivePrayerData | null): string | null
   }
 }
 
-/** Localized date line from live Hijri data, or the pinned fallback. */
-function dateLineText(live: LivePrayerData | null, lang: Lang, fallback: string): string {
-  if (!live || !live.hijri.year) return fallback;
-  const weekday = WEEKDAYS[lang][live.weekdayIndex];
-  const month = lang === 'ar' ? live.hijri.monthAr : live.hijri.monthEn;
-  return `${weekday} · ${digits(live.hijri.day, lang)} ${month} ${digits(live.hijri.year, lang)}`;
+/**
+ * Real, dynamic date line — the actual current day in the Hijri (Umm al-Qurā) calendar,
+ * from the device clock. Uses Intl so it's correct without any network call. Falls back to
+ * the pinned string only if the Islamic calendar isn't available in the runtime.
+ */
+function dateLineText(lang: Lang, fallback: string): string {
+  try {
+    const loc = lang === 'ar' ? 'ar-SA' : lang === 'tr' ? 'tr-TR' : 'en-US';
+    const fmtParts = new Intl.DateTimeFormat(`${loc}-u-ca-islamic-umalqura`, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).formatToParts(new Date());
+    const p: Record<string, string> = {};
+    for (const part of fmtParts) p[part.type] = part.value;
+    if (!p.year) return fallback;
+    return `${p.weekday} · ${digits(p.day, lang)} ${p.month} ${digits(p.year, lang)}`;
+  } catch {
+    return fallback;
+  }
 }
 
 function TesbihatCard({ item }: { item: Item }) {
@@ -328,7 +343,7 @@ export function TodayScreen({ onOpenProfile, onOpenTask }: { onOpenProfile: () =
     const t = key ? liveTimeFor(key, live) : null;
     return digits(t ?? item.sortTime, lang);
   };
-  const dateLine = dateLineText(live, lang, strings.dateLine);
+  const dateLine = dateLineText(lang, strings.dateLine);
 
   const plannedTasks = dayItems.filter((i) => PLANNED.has(i.category));
   const doneCount = plannedTasks.filter((t) => t.status === 'done').length;
