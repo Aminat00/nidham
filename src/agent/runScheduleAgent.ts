@@ -14,7 +14,7 @@ const MODE = (process.env.EXPO_PUBLIC_AGENT_MODE as AgentMode | undefined) ?? 'w
 const URL = process.env.EXPO_PUBLIC_AGENT_URL ?? '';
 const KEY = process.env.EXPO_PUBLIC_AGENT_KEY ?? '';
 const MODEL = process.env.EXPO_PUBLIC_AGENT_MODEL ?? 'gpt-4o-mini';
-const REQUEST_TIMEOUT_MS = 20_000;
+const REQUEST_TIMEOUT_MS = Number(process.env.EXPO_PUBLIC_SCHEDULE_TIMEOUT_MS) || 30_000;
 
 const WINDOWS: Window[] = ['fajr','morning','dhuhr','afternoon','asr','maghrib','isha','evening','anytime'];
 
