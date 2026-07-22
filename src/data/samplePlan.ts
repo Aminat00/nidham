@@ -17,15 +17,6 @@ import { addDays } from '../utils/dates';
 type L3 = { en: string; tr: string; ar: string };
 const pick = (v: L3, lang: Lang) => v[lang];
 
-const T = {
-  tickets: { en: 'Buy train tickets to Berlin', tr: 'Berlin’e tren bileti al', ar: 'شراء تذاكر قطار إلى برلين' },
-  move: { en: 'Plan my move from Poland', tr: 'Polonya’dan taşınmamı planla', ar: 'خطّط انتقالي من بولندا' },
-  dentist: { en: 'Call the dentist', tr: 'Dişçiyi ara', ar: 'اتصل بطبيب الأسنان' },
-  step1: { en: 'List what to bring', tr: 'Getirilecekleri listele', ar: 'اكتب ما ستحضره' },
-  step2: { en: 'Message my brother', tr: 'Kardeşime yaz', ar: 'راسل أخي' },
-  step3: { en: 'Get 3 courier quotes', tr: '3 kargo teklifi al', ar: 'احصل على ٣ عروض شحن' },
-} as const;
-
 const FALLBACK_STEPS: L3[] = [
   { en: 'List what it involves', tr: 'Neleri içerdiğini yaz', ar: 'اكتب ما يتضمنه' },
   { en: 'Message the first person', tr: 'İlk kişiye yaz', ar: 'راسل أول شخص' },
@@ -33,50 +24,12 @@ const FALLBACK_STEPS: L3[] = [
   { en: 'Prepare what’s needed', tr: 'Gerekenleri hazırla', ar: 'جهّز ما يلزم' },
 ];
 
-/** The three pre-loaded feed items, in feed order (newest first at the top). */
-export function buildInitialFeed(today: string, lang: Lang): { items: RawItem[]; ids: string[] } {
-  const items: RawItem[] = [
-    {
-      id: 'f_tickets',
-      title: pick(T.tickets, lang),
-      category: 'errand',
-      day: addDays(today, 3), // Sat
-      window: 'afternoon',
-      sortTime: '15:00',
-      urgency: 'soon',
-      energy: 'light',
-      status: 'pending',
-    },
-    {
-      id: 'f_move',
-      title: pick(T.move, lang),
-      category: 'project',
-      day: addDays(today, 1), // Thu → next wk
-      dueDate: addDays(today, 8),
-      window: 'anytime',
-      sortTime: '10:00',
-      urgency: 'soon',
-      energy: 'deep',
-      status: 'pending',
-      steps: [
-        { id: 'f_move_a', title: pick(T.step1, lang), parentId: 'f_move', category: 'step', startHere: true },
-        { id: 'f_move_b', title: pick(T.step2, lang), parentId: 'f_move', category: 'step' },
-        { id: 'f_move_c', title: pick(T.step3, lang), parentId: 'f_move', category: 'step' },
-      ],
-    },
-    {
-      id: 'f_dentist',
-      title: pick(T.dentist, lang),
-      category: 'errand',
-      day: addDays(today, 1), // Tomorrow, after Dhuhr
-      window: 'dhuhr',
-      sortTime: '13:20',
-      urgency: 'soon',
-      energy: 'light',
-      status: 'pending',
-    },
-  ];
-  return { items, ids: items.map((i) => i.id) };
+/**
+ * The pre-loaded Capture feed. Emptied — the demo sample captures (Berlin tickets,
+ * plan-my-move, dentist) were removed so the app starts with a clean Tasks list.
+ */
+export function buildInitialFeed(_today: string, _lang: Lang): { items: RawItem[]; ids: string[] } {
+  return { items: [], ids: [] };
 }
 
 const PROJECT_RE = /poland|move|apply|research|trip|project|organi|wedding|flat|find a|plan /i;

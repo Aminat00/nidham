@@ -109,12 +109,11 @@ export function buildSeed(lang: Lang): { items: Item[]; capturedIds: string[] } 
     tesbihat('isha', '20:44', 'pending'),
   ];
 
+  // Only the spiritual ākhira readings are seeded now — the worldly demo tasks
+  // (email/thesis/groceries) were removed so Today starts clean.
   const taskDefs: TaskDef[] = [
     { id: 'wird', cat: 'wird', window: 'fajr', sortTime: '04:45', status: 'done', energy: 'light' },
     { id: 'risale', cat: 'wird', window: 'fajr', sortTime: '05:10', status: 'done', energy: 'light' },
-    { id: 'email', cat: 'task', window: 'dhuhr', sortTime: '13:15', status: 'pending', energy: 'light', urgency: 'now' },
-    { id: 'thesis', cat: 'task', window: 'dhuhr', sortTime: '13:30', status: 'pending', energy: 'deep', protected: true },
-    { id: 'groceries', cat: 'errand', window: 'asr', sortTime: '16:50', status: 'pending', energy: 'light', dueDate: addDays(DEMO_TODAY, 14) },
     { id: 'quran', cat: 'wird', window: 'maghrib', sortTime: '19:40', status: 'pending', energy: 'light' },
     { id: 'muhasaba', cat: 'wird', window: 'isha', sortTime: '21:00', status: 'pending', energy: 'light' },
   ];
