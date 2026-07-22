@@ -42,6 +42,7 @@ export interface Strings {
   tomorrow: string;
   nextWeek: string;
   after: string; // "after {prayer}"
+  upNext: string; // NOW-strip label once the Fajr window has passed
   // manual controls
   pushToTomorrow: string;
   pushedToast: string;
@@ -123,6 +124,7 @@ export const UI: Record<Lang, Strings> = {
     tomorrow: 'Tomorrow',
     nextWeek: 'next wk',
     after: 'after {prayer}',
+    upNext: 'Up next',
     pushToTomorrow: 'Push to tomorrow',
     pushedToast: 'Moved to tomorrow.',
     undo: 'Undo',
@@ -194,6 +196,7 @@ export const UI: Record<Lang, Strings> = {
     tomorrow: 'Yarın',
     nextWeek: 'gelecek hf',
     after: '{prayer} sonrası',
+    upNext: 'Sıradaki',
     pushToTomorrow: 'Yarına ertele',
     pushedToast: 'Yarına taşındı.',
     undo: 'Geri al',
@@ -265,6 +268,7 @@ export const UI: Record<Lang, Strings> = {
     tomorrow: 'غداً',
     nextWeek: 'الأسبوع القادم',
     after: 'بعد {prayer}',
+    upNext: 'التالي',
     pushToTomorrow: 'أجّل إلى الغد',
     pushedToast: 'نُقلت إلى الغد.',
     undo: 'تراجع',

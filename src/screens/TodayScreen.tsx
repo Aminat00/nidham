@@ -42,17 +42,39 @@ function currentPrayerKey(times: PrayerTimes): PrayerKey {
   for (const k of order) if (toMin(times[k as keyof PrayerTimes]) <= nowMin) current = k;
   return current;
 }
+
+/** How long Fajr stays "NOW" — after this it isn't the active prayer, only the window. */
+const FAJR_ACTIVE_MIN = 40;
+
+/**
+ * What the NOW strip / timeline should highlight. Fajr is special: its window runs until
+ * Dhuhr, but you can only pray it briefly, so after FAJR_ACTIVE_MIN it stops being "now"
+ * and we point ahead to the next prayer (Dhuhr) instead. Every other prayer stays "now"
+ * for its whole window.
+ */
+type ActiveState = { mode: 'now' | 'next'; key: PrayerKey };
+function activePrayerState(times: PrayerTimes): ActiveState {
+  const current = currentPrayerKey(times);
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  if (current === 'fajr' && nowMin - toMin(times.fajr) > FAJR_ACTIVE_MIN) {
+    return { mode: 'next', key: 'dhuhr' };
+  }
+  return { mode: 'now', key: current };
+}
 import { prayerKeyFromId, prayerName, prayerScript, tesbihatCardLabel, tesbihatScript } from '../utils/labels';
 import { PrayerKey } from '../data/prayers';
 import { dayDiff } from '../utils/dates';
 
 /* ------------------------------------------------------------------ pieces --- */
 
-function NowStrip({ prayer, time }: { prayer: Item; time: string }) {
+function NowStrip({ prayer, time, mode }: { prayer: Item; time: string; mode: 'now' | 'next' }) {
   const { strings, lang, isRTL } = useI18n();
   const key = prayerKeyFromId(prayer.id);
   if (!key) return null;
   const script = prayerScript(key, lang);
+  const isNow = mode === 'now';
+  const sub = isNow ? fmt(strings.nowStripSub, { prayer: prayerName(key, lang) }) : strings.upNext;
   return (
     <View style={[styles.nowStrip, { flexDirection: row(isRTL) }]}>
       <View style={styles.timeBadge}>
@@ -63,23 +85,22 @@ function NowStrip({ prayer, time }: { prayer: Item; time: string }) {
           <Text style={styles.nowPrayer}>{prayerName(key, lang)}</Text>
           {script && <Text style={styles.scriptSm}>{script}</Text>}
         </View>
-        <Text style={[styles.nowSub, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>
-          {fmt(strings.nowStripSub, { prayer: prayerName(key, lang) })}
-        </Text>
+        <Text style={[styles.nowSub, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{sub}</Text>
       </View>
-      <Badge label={strings.now} tone="nowStrip" />
+      {isNow && <Badge label={strings.now} tone="nowStrip" />}
     </View>
   );
 }
 
 /* ------------------------------------------------------- timeline rows ------ */
 
-function PrayerRow({ item, time, isCurrent }: { item: Item; time: string; isCurrent: boolean }) {
+function PrayerRow({ item, time, isCurrent, isNext }: { item: Item; time: string; isCurrent: boolean; isNext: boolean }) {
   const { strings, lang, isRTL } = useI18n();
   const key = prayerKeyFromId(item.id)!;
   const script = prayerScript(key, lang);
   const done = item.status === 'done';
   const now = !done && isCurrent;
+  const next = !done && isNext;
   const status = done ? 'done' : now ? 'now' : 'upcoming';
   const nameColor = now ? colors.green : done ? colors.ink : colors.slate;
   return (
@@ -90,6 +111,7 @@ function PrayerRow({ item, time, isCurrent }: { item: Item; time: string; isCurr
           <Text style={[styles.prayerName, { color: nameColor }]}>{prayerName(key, lang)}</Text>
           {script && <Text style={styles.script}>{script}</Text>}
           {now && <Badge label={strings.now} tone="now" />}
+          {next && <Badge label={strings.upNext} tone="deadline" />}
         </View>
         <Text style={styles.prayerTime}>{time}</Text>
       </View>
@@ -263,8 +285,8 @@ export function TodayScreen({ onOpenProfile, onOpenTask }: { onOpenProfile: () =
   const witr = useMemo(() => dayItems.find((i) => i.id === 'p_witr'), [dayItems]);
 
   // Which prayer's window is active now — from the real clock + live/seed times.
-  const currentKey = currentPrayerKey(live?.times ?? PRAYER_TIMES);
-  const nowPrayer = prayers.find((p) => prayerKeyFromId(p.id) === currentKey);
+  const active = activePrayerState(live?.times ?? PRAYER_TIMES);
+  const nowPrayer = prayers.find((p) => prayerKeyFromId(p.id) === active.key);
 
   // Greeting uses the signed-in name (first name), else the demo name.
   const displayName = (user?.user_metadata?.display_name as string | undefined) ?? user?.email?.split('@')[0];
@@ -297,7 +319,7 @@ export function TodayScreen({ onOpenProfile, onOpenTask }: { onOpenProfile: () =
           <ProfileButton onPress={onOpenProfile} />
         </View>
 
-        {nowPrayer && <NowStrip prayer={nowPrayer} time={timeOf(nowPrayer)} />}
+        {nowPrayer && <NowStrip prayer={nowPrayer} time={timeOf(nowPrayer)} mode={active.mode} />}
 
         {/* Flow header */}
         <View style={[styles.flowHeader, { flexDirection: row(isRTL) }]}>
@@ -318,7 +340,7 @@ export function TodayScreen({ onOpenProfile, onOpenTask }: { onOpenProfile: () =
             const dunya = children.filter((c) => c.category === 'task' || c.category === 'errand' || c.category === 'project' || c.category === 'step');
             return (
               <View key={p.id}>
-                <PrayerRow item={p} time={timeOf(p)} isCurrent={prayerKeyFromId(p.id) === currentKey} />
+                <PrayerRow item={p} time={timeOf(p)} isCurrent={active.mode === 'now' && prayerKeyFromId(p.id) === active.key} isNext={active.mode === 'next' && prayerKeyFromId(p.id) === active.key} />
                 {prayerKeyFromId(p.id) === 'isha' && witr && <SubPrayerRow item={witr} time={timeOf(witr)} />}
                 {tesbihat && <TesbihatCard item={tesbihat} />}
                 {akhira.map((a) => (
