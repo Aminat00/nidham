@@ -90,7 +90,9 @@ function NowStrip({ prayer, time, mode }: { prayer: Item; time: string; mode: 'n
           </Text>
         )}
       </View>
-      <Badge label={isNow ? strings.now : strings.upNext} tone="nowStrip" />
+      <View style={styles.nowBadgeWrap}>
+        <Badge label={isNow ? strings.now : strings.upNext} tone="nowStrip" />
+      </View>
     </View>
   );
 }
@@ -435,6 +437,7 @@ const styles = StyleSheet.create({
   timeBadge: { width: 46, height: 46, borderRadius: 13, backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center' },
   timeBadgeText: { fontSize: fs(14), fontFamily: ff('700'), color: colors.green },
   nowMid: { flex: 1, gap: 1, justifyContent: 'center' },
+  nowBadgeWrap: { alignSelf: 'center', justifyContent: 'center' },
   nameRow: { alignItems: 'baseline', gap: 7 },
   nowPrayer: { fontSize: fs(14.5), fontFamily: ff('700'), color: colors.ink },
   nowSub: { fontSize: fs(12), fontFamily: ff('500'), color: colors.muted },
