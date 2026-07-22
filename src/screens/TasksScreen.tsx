@@ -16,7 +16,7 @@ import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
 import type { TimeBucket } from '../state/store';
-import { AREA_LABEL, AREA_COLOR, WEEKDAYS, WINDOW_WORD, t as fmt, digits } from '../i18n/strings';
+import { AREA_LABEL, AREA_COLOR, WEEKDAYS, WINDOW_WORD, t as fmt, digits, type Lang } from '../i18n/strings';
 import { weekdayIndex } from '../utils/dates';
 import { prayerName, PrayerKey } from '../data/prayers';
 import type { Area, Item, Window } from '../types/item';
@@ -55,6 +55,8 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
     .map((g) => ({ bucket: g.bucket, items: g.items.filter(keep) }))
     .filter((g) => g.items.length > 0);
   const backlog = backlogByArea.filter((g) => filter === 'all' || g.area === filter);
+  const schedCount = dated.reduce((n, g) => n + g.items.length, 0);
+  const backCount = backlog.reduce((n, g) => n + g.items.length, 0);
 
   const empty = projects.length === 0 && backlogByArea.length === 0 && datedTasksByHorizon.length === 0;
 
@@ -88,10 +90,10 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
         </ScrollView>
       )}
 
-      {/* SCHEDULED — by time horizon */}
+      {/* SCHEDULED — the act-now zone, by time horizon */}
       {dated.length > 0 && (
         <View style={styles.zone}>
-          <Text style={[styles.zoneLabel, { textAlign: textStart(isRTL) }]}>{strings.upcomingSection.toUpperCase()}</Text>
+          <ZoneHeader tone="loud" title={strings.schedZoneTitle} subtitle={strings.schedZoneSub} count={schedCount} isRTL={isRTL} lang={lang} />
           {dated.map((g) => (
             <View key={g.bucket} style={styles.section}>
               <Text style={[styles.bucketLabel, { textAlign: textStart(isRTL) }]}>{bucketLabel(g.bucket)}</Text>
@@ -116,34 +118,10 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
         </View>
       )}
 
-      {/* BACKLOG — undated, by area */}
-      {backlog.length > 0 && (
-        <View style={styles.zone}>
-          <Text style={[styles.zoneLabel, { textAlign: textStart(isRTL) }]}>{strings.backlogSection.toUpperCase()}</Text>
-          {backlog.map((group) => (
-            <View key={group.area} style={styles.section}>
-              <Text style={[styles.bucketLabel, { textAlign: textStart(isRTL) }]}>{AREA_LABEL[lang][group.area]}</Text>
-              <View style={styles.group}>
-                {group.items.map((it) => (
-                  <View key={it.id} style={[styles.taskRow, { flexDirection: row(isRTL) }]}>
-                    <Pressable style={styles.taskTitleBtn} onPress={() => onOpenTask(it.id)} accessibilityRole="button" accessibilityLabel={it.title}>
-                      <Text style={[styles.taskTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={2}>{it.title}</Text>
-                    </Pressable>
-                    <Pressable style={styles.doToday} onPress={() => setPickerFor(it.id)} accessibilityRole="button">
-                      <Text style={styles.doTodayText}>{strings.doToday}</Text>
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* PROJECTS — hidden when a life-area filter is active (projects are cross-area goals) */}
+      {/* PROJECTS — goals in motion; hidden when a life-area filter is active (cross-area) */}
       {filter === 'all' && projects.length > 0 && (
         <View style={styles.zone}>
-          <Text style={[styles.zoneLabel, { textAlign: textStart(isRTL) }]}>{strings.projectsSection.toUpperCase()}</Text>
+          <ZoneHeader tone="medium" title={strings.projZoneTitle} subtitle={strings.projZoneSub} count={projects.length} isRTL={isRTL} lang={lang} />
           <View style={styles.group}>
             {projects.map((p) => {
               const prog = progressOf(p.id);
@@ -168,6 +146,30 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
         </View>
       )}
 
+      {/* BACKLOG — parked, undated, by area. Deliberately last + quiet. */}
+      {backlog.length > 0 && (
+        <View style={styles.zone}>
+          <ZoneHeader tone="quiet" title={strings.backZoneTitle} subtitle={strings.backZoneSub} count={backCount} isRTL={isRTL} lang={lang} />
+          {backlog.map((group) => (
+            <View key={group.area} style={styles.section}>
+              <Text style={[styles.bucketLabel, { textAlign: textStart(isRTL) }]}>{AREA_LABEL[lang][group.area]}</Text>
+              <View style={styles.group}>
+                {group.items.map((it) => (
+                  <View key={it.id} style={[styles.taskRow, { flexDirection: row(isRTL) }]}>
+                    <Pressable style={styles.taskTitleBtn} onPress={() => onOpenTask(it.id)} accessibilityRole="button" accessibilityLabel={it.title}>
+                      <Text style={[styles.taskTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={2}>{it.title}</Text>
+                    </Pressable>
+                    <Pressable style={styles.doToday} onPress={() => setPickerFor(it.id)} accessibilityRole="button">
+                      <Text style={styles.doTodayText}>{strings.doToday}</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       <WindowPicker visible={pickerFor !== null} onSelect={pick} onClose={() => setPickerFor(null)} />
     </ScrollView>
   );
@@ -179,6 +181,25 @@ function FilterChip({ label, active, color, onPress }: { label: string; active: 
       {color ? <View style={[styles.chipDot, { backgroundColor: color }]} /> : null}
       <Text style={[styles.filterChipText, active && styles.filterChipTextOn]}>{label}</Text>
     </Pressable>
+  );
+}
+
+type ZoneTone = 'loud' | 'medium' | 'quiet';
+
+/** A zone's identity: accent dot + title + count chip + one-line purpose. Weight varies by tone. */
+function ZoneHeader({ tone, title, subtitle, count, isRTL, lang }: { tone: ZoneTone; title: string; subtitle: string; count: number; isRTL: boolean; lang: Lang }) {
+  const quiet = tone === 'quiet';
+  return (
+    <View style={styles.zoneHeader}>
+      <View style={[styles.zoneTitleRow, { flexDirection: row(isRTL) }]}>
+        <View style={[styles.zoneDot, tone === 'loud' && styles.zoneDotLoud, tone === 'medium' && styles.zoneDotMedium, quiet && styles.zoneDotQuiet]} />
+        <Text style={[quiet ? styles.zoneTitleQuiet : styles.zoneTitle, { textAlign: textStart(isRTL) }]}>{title}</Text>
+        <View style={[styles.countChip, quiet && styles.countChipQuiet]}>
+          <Text style={[styles.countChipText, quiet && styles.countChipTextQuiet]}>{digits(count, lang)}</Text>
+        </View>
+      </View>
+      <Text style={[styles.zoneSub, { textAlign: textStart(isRTL) }]}>{subtitle}</Text>
+    </View>
   );
 }
 
@@ -200,7 +221,20 @@ const styles = StyleSheet.create({
   filterChipTextOn: { color: colors.green, fontFamily: ff('700') },
 
   zone: { gap: 12 },
-  zoneLabel: { fontSize: fs(11), fontFamily: ff('700'), color: colors.muted2, letterSpacing: 0.7, paddingHorizontal: 2 },
+
+  zoneHeader: { gap: 2, paddingHorizontal: 2 },
+  zoneTitleRow: { alignItems: 'center', gap: 8 },
+  zoneDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.muted2 },
+  zoneDotLoud: { backgroundColor: colors.green },
+  zoneDotMedium: { backgroundColor: colors.green, opacity: 0.55 },
+  zoneDotQuiet: { backgroundColor: 'transparent', borderWidth: 1.4, borderColor: colors.muted2 },
+  zoneTitle: { fontSize: fs(16), fontFamily: ff('800'), color: colors.ink, letterSpacing: -0.2 },
+  zoneTitleQuiet: { fontSize: fs(13.5), fontFamily: ff('700'), color: colors.muted },
+  countChip: { minWidth: 20, alignItems: 'center', backgroundColor: colors.tint, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 1 },
+  countChipQuiet: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  countChipText: { fontSize: fs(11), fontFamily: ff('700'), color: colors.green },
+  countChipTextQuiet: { color: colors.muted2 },
+  zoneSub: { fontSize: fs(11.5), fontFamily: ff('500'), color: colors.faint },
   section: { gap: 8 },
   bucketLabel: { fontSize: fs(12.5), fontFamily: ff('700'), color: colors.ink, paddingHorizontal: 2 },
   group: { gap: 9 },

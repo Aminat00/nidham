@@ -69,6 +69,10 @@ export interface Strings {
   thisWeek: string;
   later: string;
   allAreas: string;
+  // Tasks — zone headers (title + one-line purpose)
+  schedZoneTitle: string; schedZoneSub: string;
+  projZoneTitle: string; projZoneSub: string;
+  backZoneTitle: string; backZoneSub: string;
   // Project interview
   planReady: string;
   projectCreated: string;
@@ -147,6 +151,9 @@ export const UI: Record<Lang, Strings> = {
     thisWeek: 'This week',
     later: 'Later',
     allAreas: 'All',
+    schedZoneTitle: 'On your plate', schedZoneSub: 'committed to a day',
+    projZoneTitle: 'Goals in motion', projZoneSub: 'broken into steps',
+    backZoneTitle: 'Parked', backZoneSub: 'pull one in when ready',
     planReady: 'Here’s a plan — start with the first step.',
     projectCreated: 'Added to Projects.',
     answerPlaceholder: 'Type your answer…',
@@ -219,6 +226,9 @@ export const UI: Record<Lang, Strings> = {
     thisWeek: 'Bu hafta',
     later: 'Sonra',
     allAreas: 'Hepsi',
+    schedZoneTitle: 'Gündeminde', schedZoneSub: 'bir güne söz verildi',
+    projZoneTitle: 'Yolda olan hedefler', projZoneSub: 'adımlara bölündü',
+    backZoneTitle: 'Beklemede', backZoneSub: 'hazır olunca çek',
     planReady: 'İşte bir plan — ilk adımla başla.',
     projectCreated: 'Projelere eklendi.',
     answerPlaceholder: 'Cevabını yaz…',
@@ -291,6 +301,9 @@ export const UI: Record<Lang, Strings> = {
     thisWeek: 'هذا الأسبوع',
     later: 'لاحقًا',
     allAreas: 'الكل',
+    schedZoneTitle: 'على جدولك', schedZoneSub: 'مُلتزَم بيوم',
+    projZoneTitle: 'أهداف قيد التنفيذ', projZoneSub: 'مقسّمة إلى خطوات',
+    backZoneTitle: 'مؤجّل', backZoneSub: 'اسحبه عندما تكون مستعداً',
     planReady: 'إليك خطة — ابدأ بالخطوة الأولى.',
     projectCreated: 'أُضيف إلى المشاريع.',
     answerPlaceholder: 'اكتب إجابتك…',
