@@ -212,14 +212,14 @@ function ZoneHeader({ tone, title, subtitle, count, isRTL, lang }: { tone: ZoneT
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
-  content: { paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 40, gap: 18 },
+  content: { flexGrow: 1, paddingHorizontal: space.screen, paddingTop: 8, paddingBottom: 40, gap: 18 },
   headerBlock: { gap: 3, paddingHorizontal: 2 },
   headerRow: { alignItems: 'center', justifyContent: 'space-between' },
   titleRow: { alignItems: 'baseline', gap: 9 },
   title: { fontSize: fs(22), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
   titleScript: { fontFamily: amiri(), fontSize: fs(19), color: colors.green },
   intro: { fontSize: fs(12.5), fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320 },
-  emptyState: { alignItems: 'center', gap: 10, paddingHorizontal: 24, paddingVertical: 56 },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 24, paddingBottom: 80 },
   emptyIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: fs(16), fontFamily: ff('800'), color: colors.ink, letterSpacing: -0.2 },
   empty: { fontSize: fs(13), fontFamily: ff('500'), color: colors.muted, lineHeight: 20, maxWidth: 280 },
