@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   nowStrip: { alignItems: 'center', gap: 12, marginTop: 16, paddingVertical: 11, paddingHorizontal: 13, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border2, borderRadius: 16 },
   timeBadge: { width: 46, height: 46, borderRadius: 13, backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center' },
   timeBadgeText: { fontSize: fs(14), fontFamily: ff('700'), color: colors.green },
-  nowMid: { flex: 1, gap: 1 },
+  nowMid: { flex: 1, gap: 1, justifyContent: 'center' },
   nameRow: { alignItems: 'baseline', gap: 7 },
   nowPrayer: { fontSize: fs(14.5), fontFamily: ff('700'), color: colors.ink },
   nowSub: { fontSize: fs(12), fontFamily: ff('500'), color: colors.muted },
