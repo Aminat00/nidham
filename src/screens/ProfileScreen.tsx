@@ -25,7 +25,7 @@ const T: Record<Lang, Record<string, string>> = {
     welcome: 'Sync your day', sub: 'Sign in to keep your day in sync across devices.',
     email: 'Email', password: 'Password', name: 'Name',
     signIn: 'Sign in', signUp: 'Create account',
-    toSignUp: 'New here? Create an account', toSignIn: 'Already have an account? Sign in',
+    toSignUp: 'New here?', toSignUpLink: 'Sign up', toSignIn: 'Already have an account?', toSignInLink: 'Sign in',
     checkEmail: 'Check your email to confirm your account.',
     signedIn: 'Signed in', syncing: 'Your day syncs to the cloud.', signOut: 'Sign out',
     localOnly: 'Cloud sync isn’t set up — Nidham is running locally on this device.',
@@ -37,7 +37,7 @@ const T: Record<Lang, Record<string, string>> = {
     welcome: 'Gününü eşitle', sub: 'Gününü cihazlar arasında eşitlemek için giriş yap.',
     email: 'E-posta', password: 'Şifre', name: 'İsim',
     signIn: 'Giriş yap', signUp: 'Hesap oluştur',
-    toSignUp: 'Yeni misin? Hesap oluştur', toSignIn: 'Zaten hesabın var mı? Giriş yap',
+    toSignUp: 'Yeni misin?', toSignUpLink: 'Kaydol', toSignIn: 'Zaten hesabın var mı?', toSignInLink: 'Giriş yap',
     checkEmail: 'Hesabını onaylamak için e-postanı kontrol et.',
     signedIn: 'Giriş yapıldı', syncing: 'Günün buluta eşitleniyor.', signOut: 'Çıkış yap',
     localOnly: 'Bulut eşitleme kurulu değil — Nidham bu cihazda yerel çalışıyor.',
@@ -49,7 +49,7 @@ const T: Record<Lang, Record<string, string>> = {
     welcome: 'زامِن يومك', sub: 'سجّل الدخول لمزامنة يومك عبر أجهزتك.',
     email: 'البريد الإلكتروني', password: 'كلمة المرور', name: 'الاسم',
     signIn: 'تسجيل الدخول', signUp: 'إنشاء حساب',
-    toSignUp: 'جديد هنا؟ أنشئ حسابًا', toSignIn: 'لديك حساب؟ سجّل الدخول',
+    toSignUp: 'جديد هنا؟', toSignUpLink: 'أنشئ حسابًا', toSignIn: 'لديك حساب؟', toSignInLink: 'سجّل الدخول',
     checkEmail: 'تحقّق من بريدك لتأكيد حسابك.',
     signedIn: 'تم تسجيل الدخول', syncing: 'يومك يُزامَن مع السحابة.', signOut: 'تسجيل الخروج',
     localOnly: 'المزامنة السحابية غير مُهيّأة — يعمل نِظام محليًا على هذا الجهاز.',
@@ -160,7 +160,10 @@ export function ProfileScreen({ onClose, gate = false }: { onClose?: () => void;
                 {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>{mode === 'in' ? t.signIn : t.signUp}</Text>}
               </Pressable>
               <Pressable onPress={() => { setMode(mode === 'in' ? 'up' : 'in'); setError(null); setNotice(null); }} hitSlop={8}>
-                <Text style={styles.toggle}>{mode === 'in' ? t.toSignUp : t.toSignIn}</Text>
+                <Text style={styles.toggle}>
+                  {mode === 'in' ? t.toSignUp : t.toSignIn}{' '}
+                  <Text style={styles.toggleLink}>{mode === 'in' ? t.toSignUpLink : t.toSignInLink}</Text>
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -203,6 +206,7 @@ const styles = StyleSheet.create({
   buttonBusy: { opacity: 0.7 },
   buttonText: { color: colors.white, fontSize: fs(15), fontFamily: ff('700') },
   toggle: { textAlign: 'center', fontSize: fs(13), fontFamily: ff('600'), color: colors.muted, marginTop: 6 },
+  toggleLink: { fontFamily: ff('700'), color: colors.green, textDecorationLine: 'underline' },
   account: { alignItems: 'center', gap: 12, marginTop: 20 },
   avatarBig: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
   avatarBigText: { color: colors.white, fontFamily: ff('700'), fontSize: fs(30) },
