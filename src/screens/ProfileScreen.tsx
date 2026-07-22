@@ -58,7 +58,7 @@ const T: Record<Lang, Record<string, string>> = {
   },
 };
 
-export function ProfileScreen({ onClose }: { onClose: () => void }) {
+export function ProfileScreen({ onClose, gate = false }: { onClose?: () => void; gate?: boolean }) {
   const { lang, isRTL } = useI18n();
   const { configured, session, user, signIn, signUp, signOut } = useAuth();
   const { method, setMethod } = useSettings();
@@ -73,7 +73,7 @@ export function ProfileScreen({ onClose }: { onClose: () => void }) {
     }
     resetData();
     setConfirmReset(false);
-    onClose();
+    onClose?.();
   };
 
   const [mode, setMode] = useState<'in' | 'up'>('in');
@@ -110,10 +110,12 @@ export function ProfileScreen({ onClose }: { onClose: () => void }) {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={[styles.top, { flexDirection: row(isRTL) }]}>
-        <Pressable onPress={onClose} hitSlop={10} style={styles.close} accessibilityRole="button" accessibilityLabel={t.close}>
-          <Text style={styles.closeText}>✕</Text>
-        </Pressable>
+      <View style={[styles.top, { flexDirection: row(isRTL), justifyContent: gate ? 'flex-end' : 'space-between' }]}>
+        {!gate && (
+          <Pressable onPress={onClose} hitSlop={10} style={styles.close} accessibilityRole="button" accessibilityLabel={t.close}>
+            <Text style={styles.closeText}>✕</Text>
+          </Pressable>
+        )}
         <LanguageToggle />
       </View>
 

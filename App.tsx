@@ -20,7 +20,7 @@ import { TabBar, ScreenName } from './src/components/TabBar';
 import { colors, FONT_MAP } from './src/theme/tokens';
 import { loadLang, saveLang } from './src/state/persistence';
 import { PrayerTimesProvider } from './src/data/PrayerTimesContext';
-import { AuthProvider } from './src/state/auth';
+import { AuthProvider, useAuth } from './src/state/auth';
 import { SettingsProvider } from './src/state/settings';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { DEMO_TODAY } from './src/data/demo';
@@ -69,13 +69,23 @@ function AppInner() {
   );
 }
 
-/** The app is never gated on auth — it always runs (local-first). Signing in from
- *  the Profile screen turns on cloud sync. */
+/**
+ * Auth gate. When Supabase is configured, a signed-out user only ever sees the
+ * sign-in / sign-up screen — the rest of the app is hidden until they authenticate.
+ * When it isn't configured (local dev), the app runs as a single-user local demo.
+ */
+function Shell() {
+  const { configured, loading, user } = useAuth();
+  if (configured && loading) return <View style={styles.root} />; // calm splash while the session restores
+  if (configured && !user) return <ProfileScreen gate />;
+  return <AppInner />;
+}
+
 function Gate() {
   return (
     <PrayerTimesProvider date={DEMO_TODAY}>
       <StoreProvider>
-        <AppInner />
+        <Shell />
       </StoreProvider>
     </PrayerTimesProvider>
   );
