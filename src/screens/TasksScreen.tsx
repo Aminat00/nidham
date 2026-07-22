@@ -140,8 +140,8 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
         </View>
       )}
 
-      {/* PROJECTS */}
-      {projects.length > 0 && (
+      {/* PROJECTS — hidden when a life-area filter is active (projects are cross-area goals) */}
+      {filter === 'all' && projects.length > 0 && (
         <View style={styles.zone}>
           <Text style={[styles.zoneLabel, { textAlign: textStart(isRTL) }]}>{strings.projectsSection.toUpperCase()}</Text>
           <View style={styles.group}>
