@@ -1,20 +1,23 @@
 /**
- * Demo anchors, matching Nidham.dc.html. In-memory, no persistence, so "today" is
- * pinned to a constant to keep prayer times, the Hijri header and schedule chips
- * consistent. Swap DEMO_TODAY + PRAYER_TIMES for a live source later.
+ * App anchors. DEMO_TODAY / DEMO_NOW are the real current day + moment (resolved once at
+ * launch), so "today", schedule chips and the Hijri header all track the real calendar.
+ * PRAYER_TIMES stay as fallback demo times until a live source overrides them.
  */
 
 import type { Lang } from '../i18n/strings';
 import type { PrayerTimes } from '../agent/contract';
 
-/** Wed · 9 Muḥarram 1448 (Gregorian 2026-07-20). */
-export const DEMO_TODAY = '2026-07-20';
+/** Local YYYY-MM-DD for a Date (no UTC shift). */
+function localDateISO(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
-/** The demo treats today as Wednesday (see the design's date line). */
-export const DEMO_WEEKDAY_INDEX = 3; // 0 = Sun … 3 = Wed
+/** "Today" is the real current day now — the app is live (auth-gated), not a frozen demo. */
+export const DEMO_TODAY = localDateISO(new Date());
 
-/** ISO 8601 "now" sent to the agent as context.now (Dhuhr just entered). */
-export const DEMO_NOW_ISO = '2026-07-20T13:02:00+03:00';
+/** ISO 8601 "now" sent to the agent as context.now — the real current moment. */
+export const DEMO_NOW_ISO = new Date().toISOString();
 
 export const USER_NAME = 'Yusuf';
 

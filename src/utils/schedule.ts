@@ -6,23 +6,17 @@
 
 import type { Item } from '../types/item';
 import { Lang, UI, WEEKDAYS, WINDOW_WORD, t, isRTL } from '../i18n/strings';
-import { dayDiff } from './dates';
+import { dayDiff, weekdayIndex } from './dates';
 import { PRAYER_NAMES, PrayerKey } from '../data/prayers';
-import { DEMO_WEEKDAY_INDEX } from '../data/demo';
 
 const PRAYER_WINDOWS: Item['window'][] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
-
-/** Weekday index anchored to the demo's Wednesday, not the real calendar. */
-function demoWeekday(date: string, today: string): number {
-  return ((DEMO_WEEKDAY_INDEX + dayDiff(today, date)) % 7 + 7) % 7;
-}
 
 function dayPart(day: string, lang: Lang, today: string): string {
   const s = UI[lang];
   const diff = dayDiff(today, day);
   if (diff <= 0) return s.today;
   if (diff === 1) return s.tomorrow;
-  return WEEKDAYS[lang][demoWeekday(day, today)];
+  return WEEKDAYS[lang][weekdayIndex(day)];
 }
 
 /** Window phrase; `isAfter` marks prayer windows ("after Dhuhr") vs plain words. */
@@ -46,11 +40,11 @@ export function scheduleChipLabel(item: Item, lang: Lang, today: string): string
 
   // Projects show a range ("Thu → next wk").
   if (item.category === 'project') {
-    const start = WEEKDAYS[lang][demoWeekday(day, today)];
+    const start = WEEKDAYS[lang][weekdayIndex(day)];
     let end = s.nextWeek;
     if (item.dueDate) {
       const span = dayDiff(day, item.dueDate);
-      end = span >= 6 ? s.nextWeek : WEEKDAYS[lang][demoWeekday(item.dueDate, today)];
+      end = span >= 6 ? s.nextWeek : WEEKDAYS[lang][weekdayIndex(item.dueDate)];
     }
     return `${start} ${arrow} ${end}`;
   }
