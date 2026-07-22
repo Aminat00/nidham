@@ -441,10 +441,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setItemsById((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], title: clean } } : prev));
   }, []);
 
-  /** Persist a deletion everywhere: tombstone seed ids, and remove the rows from the cloud. */
+  /**
+   * Persist a deletion everywhere so it never comes back: tombstone the ids (kept out of
+   * the seed rebuild AND filtered from the cloud pull — this is what makes a delete stick
+   * even if the cloud write below fails), and delete the rows from the cloud.
+   */
   const commitDeletion = useCallback((ids: string[]) => {
-    const seed = ids.filter((id) => SEED_IDS.has(id));
-    if (seed.length) setDeletedIds((prev) => { const next = new Set(prev); for (const id of seed) next.add(id); return next; });
+    if (ids.length) setDeletedIds((prev) => { const next = new Set(prev); for (const id of ids) next.add(id); return next; });
     if (userId && cloudPulledRef.current === userId) deleteItems(userId, ids);
   }, [userId]);
 
