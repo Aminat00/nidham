@@ -8,3 +8,7 @@ web-build/
 
 # Generated n8n workflows — build locally, don't commit
 docs/*.n8n.json
+docs/nidham-build-request.n8n.js
+docs/nidham-agents-multiagent.n8n.json
+docs/nidham-capture-agent.n8n.js
+docs/nidham-scheduler-agent.n8n.js
