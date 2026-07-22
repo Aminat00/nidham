@@ -221,7 +221,7 @@ function deadlineLabel(item: Item, lang: Lang, today: string): string | null {
 }
 
 /** Dunya task card — grouped rows with checkbox, energy dot, urgent/deadline. */
-function DunyaCard({ items, onPush, onOpenTask }: { items: Item[]; onPush: (id: string) => void; onOpenTask: (id: string) => void }) {
+function DunyaCard({ items, onPush, onOpenTask, nextStepTitles }: { items: Item[]; onPush: (id: string) => void; onOpenTask: (id: string) => void; nextStepTitles: Record<string, string> }) {
   const { strings, lang, isRTL, today } = useDunya();
   const { toggleDone } = useStore();
   return (
@@ -249,7 +249,11 @@ function DunyaCard({ items, onPush, onOpenTask }: { items: Item[]; onPush: (id: 
                 {urgent && <Badge label={strings.urgent} tone="urgent" />}
               </View>
               <View style={[styles.dunyaMetaRow, { flexDirection: row(isRTL) }]}>
-                {item.note && <Text style={styles.dunyaMeta}>{item.note}</Text>}
+                {nextStepTitles[item.id] ? (
+                  <Text style={styles.nextTag} numberOfLines={1}>{strings.upNext} · {nextStepTitles[item.id]}</Text>
+                ) : item.note ? (
+                  <Text style={styles.dunyaMeta}>{item.note}</Text>
+                ) : null}
                 {deadline && !done && <Badge label={deadline} tone="deadline" />}
               </View>
             </View>
@@ -271,6 +275,27 @@ function useDunya() {
 /* ------------------------------------------------------------------ screen --- */
 
 const PLANNED = new Set<Item['category']>(['wird', 'task', 'errand', 'project', 'step']);
+/** Worldly work (excludes spiritual wird) — what the load numbers + cap are about. */
+const DUNYA = new Set<Item['category']>(['task', 'errand', 'project', 'step']);
+/** Gentle daily ceiling on deep-focus tasks. Past it → a factual over-capacity mark. */
+const DEEP_CAP = 3;
+
+/** Minutes parsed from a free-text estimate ("~2h", "90 min", "1.5h", "30 dk"); 0 if none. */
+function estimateMin(text?: string | null): number {
+  if (!text) return 0;
+  const h = text.match(/(\d+(?:\.\d+)?)\s*h/i);
+  if (h) return Math.round(parseFloat(h[1]) * 60);
+  const m = text.match(/(\d+)\s*(?:min|dk|دقيقة|دقائق)/i);
+  if (m) return parseInt(m[1], 10);
+  return 0;
+}
+
+/** Compact duration: "45m" under an hour, else "~2.5h" (half-hour rounded). */
+function fmtDur(min: number, lang: Lang): string {
+  if (min < 60) return `${digits(min, lang)}m`;
+  const h = Math.round((min / 60) * 2) / 2;
+  return `${digits(h, lang)}h`;
+}
 
 export function TodayScreen({ onOpenProfile, onOpenTask }: { onOpenProfile: () => void; onOpenTask: (id: string) => void }) {
   const { strings, lang, isRTL } = useI18n();
@@ -303,6 +328,25 @@ export function TodayScreen({ onOpenProfile, onOpenTask }: { onOpenProfile: () =
   const plannedTasks = dayItems.filter((i) => PLANNED.has(i.category));
   const doneCount = plannedTasks.filter((t) => t.status === 'done').length;
 
+  // Real, computed day load — worldly tasks only, no sentiment.
+  const dunyaToday = plannedTasks.filter((t) => DUNYA.has(t.category));
+  const openDunya = dunyaToday.filter((t) => t.status !== 'done');
+  const deepPending = openDunya.filter((t) => t.energy === 'deep').length;
+  const totalMin = openDunya.reduce((n, t) => n + estimateMin(t.note), 0);
+  const overCap = deepPending > DEEP_CAP;
+
+  const dayLoad: string[] = [`${digits(doneCount, lang)} / ${digits(plannedTasks.length, lang)}${strings.done}`];
+  if (deepPending > 0) dayLoad.push(`${digits(deepPending, lang)} ${strings.deepLabel}`);
+  if (totalMin > 0) dayLoad.push(`~${fmtDur(totalMin, lang)}`);
+
+  // The one thing that matters from projects: each project's current "start here" step,
+  // when it's actually scheduled today. Maps that step's id → its project title.
+  const nextStepTitles: Record<string, string> = {};
+  for (const p of store.projects) {
+    const cur = store.currentStepOf(p.id);
+    if (cur && cur.day === today) nextStepTitles[cur.id] = p.title;
+  }
+
   const childrenFor = (p: Item) => (p.id === `p_${p.window}` ? dayItems.filter((i) => i.category !== 'prayer' && i.window === p.window) : []);
 
   const handlePush = (id: string) => store.pushToTomorrow(id);
@@ -321,13 +365,17 @@ export function TodayScreen({ onOpenProfile, onOpenTask }: { onOpenProfile: () =
 
         {nowPrayer && <NowStrip prayer={nowPrayer} time={timeOf(nowPrayer)} mode={active.mode} />}
 
-        {/* Flow header */}
+        {/* Flow header — the real, computed day load (or "Only prayers today"). */}
         <View style={[styles.flowHeader, { flexDirection: row(isRTL) }]}>
           <Text style={styles.flowTitle}>{strings.flowTitle}</Text>
-          <Text style={styles.flowCount}>
-            {digits(doneCount, lang)} / {digits(plannedTasks.length, lang)}
-            {strings.done}
-          </Text>
+          {dunyaToday.length === 0 ? (
+            <Text style={styles.flowCount}>{strings.onlyPrayers}</Text>
+          ) : (
+            <View style={[styles.loadRow, { flexDirection: row(isRTL) }]}>
+              <Text style={styles.flowCount}>{dayLoad.join(' · ')}</Text>
+              {overCap && <Text style={styles.overCap}>· {strings.overCapacity}</Text>}
+            </View>
+          )}
         </View>
 
         {/* Timeline */}
@@ -346,7 +394,7 @@ export function TodayScreen({ onOpenProfile, onOpenTask }: { onOpenProfile: () =
                 {akhira.map((a) => (
                   <AkhiraRow key={a.id} item={a} />
                 ))}
-                {dunya.length > 0 && <DunyaCard items={dunya} onPush={handlePush} onOpenTask={onOpenTask} />}
+                {dunya.length > 0 && <DunyaCard items={dunya} onPush={handlePush} onOpenTask={onOpenTask} nextStepTitles={nextStepTitles} />}
               </View>
             );
           })}
@@ -392,6 +440,8 @@ const styles = StyleSheet.create({
   flowHeader: { justifyContent: 'space-between', alignItems: 'baseline', marginTop: 22, marginBottom: 10, paddingHorizontal: 2 },
   flowTitle: { fontSize: fs(15), fontFamily: ff('700'), color: colors.ink },
   flowCount: { fontSize: fs(12), fontFamily: ff('500'), color: colors.muted },
+  loadRow: { alignItems: 'baseline', gap: 5 },
+  overCap: { fontSize: fs(12), fontFamily: ff('700'), color: colors.rust },
 
   timeline: { position: 'relative' },
   spine: { position: 'absolute', top: 16, bottom: 14, width: 2, backgroundColor: colors.timeline, borderRadius: 2 },
@@ -426,6 +476,7 @@ const styles = StyleSheet.create({
   dunyaTitle: { flexShrink: 1, fontSize: fs(13), fontFamily: ff('600'), color: colors.ink },
   dunyaMetaRow: { alignItems: 'center', gap: 7 },
   dunyaMeta: { fontSize: fs(11), fontFamily: ff('500'), color: colors.muted2 },
+  nextTag: { fontSize: fs(11), fontFamily: ff('700'), color: colors.green },
   dunyaTime: { fontSize: fs(11), fontFamily: ff('700'), color: colors.muted },
 
   mutedStrike: { color: colors.faint, textDecorationLine: 'line-through' },

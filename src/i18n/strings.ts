@@ -43,6 +43,9 @@ export interface Strings {
   nextWeek: string;
   after: string; // "after {prayer}"
   upNext: string; // NOW-strip label once the Fajr window has passed
+  deepLabel: string;   // "{n} deep" load word
+  overCapacity: string; // factual mark when deep tasks exceed the daily cap
+  onlyPrayers: string;  // day line when nothing worldly is due today
   // manual controls
   pushToTomorrow: string;
   pushedToast: string;
@@ -129,6 +132,9 @@ export const UI: Record<Lang, Strings> = {
     nextWeek: 'next wk',
     after: 'after {prayer}',
     upNext: 'Up next',
+    deepLabel: 'deep',
+    overCapacity: 'over capacity',
+    onlyPrayers: 'Only prayers today',
     pushToTomorrow: 'Push to tomorrow',
     pushedToast: 'Moved to tomorrow.',
     undo: 'Undo',
@@ -204,6 +210,9 @@ export const UI: Record<Lang, Strings> = {
     nextWeek: 'gelecek hf',
     after: '{prayer} sonrası',
     upNext: 'Sıradaki',
+    deepLabel: 'derin',
+    overCapacity: 'kapasite aşıldı',
+    onlyPrayers: 'Bugün sadece namazlar',
     pushToTomorrow: 'Yarına ertele',
     pushedToast: 'Yarına taşındı.',
     undo: 'Geri al',
@@ -279,6 +288,9 @@ export const UI: Record<Lang, Strings> = {
     nextWeek: 'الأسبوع القادم',
     after: 'بعد {prayer}',
     upNext: 'التالي',
+    deepLabel: 'عميق',
+    overCapacity: 'فوق الطاقة',
+    onlyPrayers: 'اليوم صلوات فقط',
     pushToTomorrow: 'أجّل إلى الغد',
     pushedToast: 'نُقلت إلى الغد.',
     undo: 'تراجع',
