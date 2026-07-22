@@ -36,6 +36,15 @@ const MIN_THINKING_MS = 1500;
 /** Item ids the seed owns (language-independent) — the rest are user captures. */
 const SEED_IDS = new Set(buildSeed('en').items.map((i) => i.id));
 
+/**
+ * The day-flow categories are owned by the local seed (code), never the cloud: prayers,
+ * their tesbihat, and the ākhira wird. We don't push them to Supabase and we ignore any
+ * such rows on pull — so seed edits (reorder, retime, hide) always take effect and stale
+ * cloud rows can't shadow them. Only user captures (task/errand/project/step) sync.
+ */
+const DAYFLOW_CATS = new Set<Item['category']>(['prayer', 'tesbihat', 'wird']);
+const isSynced = (i: Item) => !DAYFLOW_CATS.has(i.category);
+
 type Phase = 'idle' | 'thinking';
 
 /** Time horizon buckets for scheduled tasks on the Tasks screen. */
@@ -177,14 +186,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (remote && remote.items.length) {
         setItemsById((prev) => {
           const next = { ...prev };
-          // remote wins — except for seed items the user has deleted (tombstoned).
-          for (const it of remote.items) if (!deletedIdsRef.current.has(it.id)) next[it.id] = it;
+          // remote wins for captures — but the day-flow is local-only, and tombstoned ids stay gone.
+          for (const it of remote.items) if (isSynced(it) && !deletedIdsRef.current.has(it.id)) next[it.id] = it;
           return next;
         });
         if (remote.feedIds.length) setFeedIds(remote.feedIds);
       } else {
         // First sign-in on this device → push the current items to the cloud.
-        saveAll(userId, Object.values(itemsRef.current), feedIdsRef.current);
+        saveAll(userId, Object.values(itemsRef.current).filter(isSynced), feedIdsRef.current);
       }
     })();
     return () => {
@@ -229,7 +238,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (userId && cloudPulledRef.current === userId) {
       if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
       cloudSaveTimer.current = setTimeout(() => {
-        saveAll(userId, Object.values(itemsById), feedIds);
+        saveAll(userId, Object.values(itemsById).filter(isSynced), feedIds);
       }, 600);
     }
   }, [itemsById, feedIds, deletedIds, userId]);

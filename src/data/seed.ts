@@ -36,7 +36,7 @@ function notes(lang: Lang): Record<string, string> {
   return {
     wird: { en: 'After Fajr · Ākhira', tr: 'Sabahtan sonra · Âhiret', ar: 'بعد الفجر · آخرة' }[lang],
     risale: { en: `15 min · Ākhira`, tr: `15 dk · Âhiret`, ar: `${d(15)} دقيقة · آخرة` }[lang],
-    quran: { en: 'Ākhira · 20 min', tr: 'Âhiret · 20 dk', ar: `آخرة · ${d(20)} دقيقة` }[lang],
+    quran: { en: 'Ākhira · 30 min', tr: 'Âhiret · 30 dk', ar: `آخرة · ${d(30)} دقيقة` }[lang],
     muhasaba: { en: 'Reflect · 10 min', tr: 'Tefekkür · 10 dk', ar: `تفكّر · ${d(10)} دقائق` }[lang],
     email: { en: 'Admin · 5 min', tr: 'İdari · 5 dk', ar: `إداري · ${d(5)} دقائق` }[lang],
     thesis: { en: 'Deep work · goal · 90 min', tr: 'Derin çalışma · hedef · 90 dk', ar: `عمل عميق · هدف · ${d(90)} دقيقة` }[lang],
@@ -113,8 +113,8 @@ export function buildSeed(lang: Lang): { items: Item[]; capturedIds: string[] } 
   // (email/thesis/groceries) were removed so Today starts clean.
   const taskDefs: TaskDef[] = [
     { id: 'wird', cat: 'wird', window: 'fajr', sortTime: '04:45', status: 'done', energy: 'light' },
-    { id: 'risale', cat: 'wird', window: 'fajr', sortTime: '05:10', status: 'done', energy: 'light' },
-    { id: 'quran', cat: 'wird', window: 'maghrib', sortTime: '19:40', status: 'pending', energy: 'light' },
+    // Qurʾān (1 juz) sits in the Fajr block right after the morning wird — Risale-i Nur is hidden for now.
+    { id: 'quran', cat: 'wird', window: 'fajr', sortTime: '05:10', status: 'pending', energy: 'light' },
     { id: 'muhasaba', cat: 'wird', window: 'isha', sortTime: '21:00', status: 'pending', energy: 'light' },
   ];
   const tasks = taskDefs.map((d) => task(d, lang, N));
