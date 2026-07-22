@@ -88,6 +88,10 @@ export interface Strings {
   save: string;
   markDone: string;
   deleteTask: string;
+  delete: string;
+  cancel: string;
+  deleteProjectTitle: string;
+  deleteProjectBody: string;
   scheduledFor: string;     // "{day} · after {prayer}"
   unscheduleLabel: string;
   prevDay: string;
@@ -157,6 +161,10 @@ export const UI: Record<Lang, Strings> = {
     save: 'Save',
     markDone: 'Mark done',
     deleteTask: 'Delete',
+    delete: 'Delete',
+    cancel: 'Cancel',
+    deleteProjectTitle: 'Delete project?',
+    deleteProjectBody: 'This removes the project and all its steps. This cannot be undone.',
     scheduledFor: '{day} · {when}',
     unscheduleLabel: 'Unschedule',
     prevDay: 'Previous day',
@@ -224,6 +232,10 @@ export const UI: Record<Lang, Strings> = {
     save: 'Kaydet',
     markDone: 'Tamamlandı',
     deleteTask: 'Sil',
+    delete: 'Sil',
+    cancel: 'Vazgeç',
+    deleteProjectTitle: 'Proje silinsin mi?',
+    deleteProjectBody: 'Bu, projeyi ve tüm adımlarını kaldırır. Geri alınamaz.',
     scheduledFor: '{day} · {when}',
     unscheduleLabel: 'Programdan çıkar',
     prevDay: 'Önceki gün',
@@ -291,6 +303,10 @@ export const UI: Record<Lang, Strings> = {
     save: 'حفظ',
     markDone: 'تمّ',
     deleteTask: 'حذف',
+    delete: 'حذف',
+    cancel: 'إلغاء',
+    deleteProjectTitle: 'حذف المشروع؟',
+    deleteProjectBody: 'سيؤدي هذا إلى إزالة المشروع وجميع خطواته. لا يمكن التراجع.',
     scheduledFor: '{day} · {when}',
     unscheduleLabel: 'إلغاء الجدولة',
     prevDay: 'اليوم السابق',

@@ -56,7 +56,7 @@ function AppInner() {
       )}
       {projectOpen && (
         <View style={StyleSheet.absoluteFill}>
-          <ProjectDetailScreen projectId={projectOpen} onClose={() => setProjectOpen(null)} />
+          <ProjectDetailScreen projectId={projectOpen} onClose={() => setProjectOpen(null)} onOpenTask={openTask} />
         </View>
       )}
       {taskOpen && (

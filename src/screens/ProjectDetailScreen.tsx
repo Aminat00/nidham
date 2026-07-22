@@ -1,12 +1,13 @@
 /**
  * Project detail — opened from the Tasks tab or a freshly-created plan. Shows the project
- * as milestones (collapsible) → steps with checkboxes. The current "start here" step is
- * highlighted and carries a "Do today" that schedules it into a prayer window. Checking a
- * step advances the project; the next step becomes current. Overlay, like Profile.
+ * as milestones (collapsible) → steps with checkboxes. Each step is tappable: it opens the
+ * shared Task detail (rename, schedule, mark done, delete). The current "start here" step is
+ * highlighted and carries a "Do today" that schedules it into a prayer window. A scheduled
+ * step shows its day + window inline. The header carries a Delete (whole project). Overlay.
  */
 
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WindowPicker } from '../components/WindowPicker';
 import { CheckIcon, ChevronDownIcon } from '../components/Icons';
@@ -14,13 +15,23 @@ import { colors, ff, fs, radius, space } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
-import { t as fmt, digits } from '../i18n/strings';
-import { DEMO_TODAY, DEMO_NOW_ISO, PRAYER_TIMES } from '../data/demo';
-import { usePrayerTimes } from '../data/PrayerTimesContext';
-import { runScheduleAgent } from '../agent/runScheduleAgent';
-import type { Window } from '../types/item';
+import { t as fmt, digits, WEEKDAYS, WINDOW_WORD } from '../i18n/strings';
+import { weekdayIndex } from '../utils/dates';
+import { prayerName, type PrayerKey } from '../data/prayers';
+import { DEMO_TODAY } from '../data/demo';
+import type { Item, Window } from '../types/item';
 
-export function ProjectDetailScreen({ projectId, onClose }: { projectId: string; onClose: () => void }) {
+const PRAYER_WINDOWS = new Set<Window>(['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']);
+
+export function ProjectDetailScreen({
+  projectId,
+  onClose,
+  onOpenTask,
+}: {
+  projectId: string;
+  onClose: () => void;
+  onOpenTask: (id: string) => void;
+}) {
   const { strings, isRTL, lang } = useI18n();
   const {
     getItem,
@@ -30,12 +41,8 @@ export function ProjectDetailScreen({ projectId, onClose }: { projectId: string;
     currentStepOf,
     toggleDone,
     scheduleToday,
-    subtasksOf,
-    scheduledItems,
-    scheduleItem,
+    deleteProject,
   } = useStore();
-  const { live } = usePrayerTimes();
-  const times = live?.times ?? PRAYER_TIMES;
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [pickerFor, setPickerFor] = useState<string | null>(null);
 
@@ -56,25 +63,28 @@ export function ProjectDetailScreen({ projectId, onClose }: { projectId: string;
     setPickerFor(null);
   };
 
-  /** Re-runs the scheduler over this project's subtasks, spreading them across the horizon. */
-  const reschedule = async () => {
-    const subs = subtasksOf(projectId);
-    if (subs.length === 0) return;
-    const ownIds = new Set(subs.map((s) => s.id));
-    const ctx = {
-      now: DEMO_NOW_ISO,
-      lang,
-      prayerTimes: times,
-      // Exclude the project's own subtasks — they already carry a `day` from a prior
-      // schedule, and counting them against the load cap would push them progressively
-      // later on every press.
-      existingItems: scheduledItems()
-        .filter((i) => !ownIds.has(i.id))
-        .map((i) => ({ id: i.id, title: i.title, window: i.window, day: i.day })),
-    };
-    const subtasks = subs.map((i) => ({ id: i.id, title: i.title, estimate: i.note ?? undefined, energy: i.energy }));
-    const { placements } = await runScheduleAgent({ subtasks, context: ctx, spread: true });
-    for (const p of placements) scheduleItem(p.subtaskId, { date: p.day, window: p.window, time: p.time ?? null });
+  /** "Wed · ʿAsr · 15:00" — the day/window (+ exact time) a step is scheduled to. */
+  const whenLabel = (s: Item): string => {
+    const wd = s.day ? WEEKDAYS[lang][weekdayIndex(s.day)] : '';
+    const w = PRAYER_WINDOWS.has(s.window)
+      ? prayerName(s.window as PrayerKey, lang)
+      : WINDOW_WORD[lang][s.window as 'morning' | 'afternoon' | 'evening' | 'anytime'] ?? '';
+    const time = s.time ? ` · ${digits(s.time, lang)}` : '';
+    return `${wd} · ${w}${time}`;
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(strings.deleteProjectTitle, strings.deleteProjectBody, [
+      { text: strings.cancel, style: 'cancel' },
+      {
+        text: strings.delete,
+        style: 'destructive',
+        onPress: () => {
+          deleteProject(projectId);
+          onClose();
+        },
+      },
+    ]);
   };
 
   const meta =
@@ -84,8 +94,8 @@ export function ProjectDetailScreen({ projectId, onClose }: { projectId: string;
   return (
     <SafeAreaView style={styles.screen}>
       <View style={[styles.top, { flexDirection: row(isRTL) }]}>
-        <Pressable onPress={reschedule} style={styles.rescheduleBtn} accessibilityRole="button" accessibilityLabel={strings.reschedule}>
-          <Text style={styles.rescheduleText}>{strings.reschedule}</Text>
+        <Pressable onPress={confirmDelete} style={styles.deleteBtn} accessibilityRole="button" accessibilityLabel={strings.delete}>
+          <Text style={styles.deleteText}>{strings.delete}</Text>
         </Pressable>
         <Pressable onPress={onClose} hitSlop={10} style={styles.close} accessibilityRole="button" accessibilityLabel="Close">
           <Text style={styles.closeText}>✕</Text>
@@ -121,8 +131,11 @@ export function ProjectDetailScreen({ projectId, onClose }: { projectId: string;
                       <Pressable onPress={() => toggleDone(s.id)} style={[styles.checkbox, done && styles.checkboxOn]} accessibilityRole="checkbox" accessibilityState={{ checked: done }}>
                         {done ? <CheckIcon size={12} color={colors.white} /> : null}
                       </Pressable>
-                      <View style={styles.stepBody}>
+                      <Pressable style={styles.stepBody} onPress={() => onOpenTask(s.id)} accessibilityRole="button">
                         <Text style={[styles.stepText, done && styles.stepTextDone, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{s.title}</Text>
+                        {s.day && !done ? (
+                          <Text style={[styles.stepWhen, { textAlign: textStart(isRTL) }]}>{whenLabel(s)}</Text>
+                        ) : null}
                         {isCurrent && !done ? (
                           <View style={[styles.currentRow, { flexDirection: row(isRTL) }]}>
                             <Text style={styles.startHereTag}>{strings.startHere}</Text>
@@ -135,7 +148,7 @@ export function ProjectDetailScreen({ projectId, onClose }: { projectId: string;
                             )}
                           </View>
                         ) : null}
-                      </View>
+                      </Pressable>
                     </View>
                   );
                 })}
@@ -154,8 +167,8 @@ const styles = StyleSheet.create({
   top: { alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 8 },
   close: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   closeText: { fontSize: fs(15), fontFamily: ff('600'), color: colors.muted },
-  rescheduleBtn: { borderWidth: 1, borderColor: colors.green, borderRadius: radius.inner, paddingHorizontal: 12, paddingVertical: 8 },
-  rescheduleText: { fontSize: fs(12.5), fontFamily: ff('700'), color: colors.green },
+  deleteBtn: { borderWidth: 1, borderColor: colors.rust, borderRadius: radius.inner, paddingHorizontal: 12, paddingVertical: 8 },
+  deleteText: { fontSize: fs(12.5), fontFamily: ff('700'), color: colors.rust },
   content: { paddingTop: 12, paddingBottom: 40, gap: 16 },
   head: { gap: 5 },
   kicker: { fontSize: fs(10), fontFamily: ff('700'), color: colors.green, letterSpacing: 0.6 },
@@ -173,6 +186,7 @@ const styles = StyleSheet.create({
   stepBody: { flex: 1, gap: 6 },
   stepText: { fontSize: fs(14.5), fontFamily: ff('500'), color: colors.ink, lineHeight: 21 },
   stepTextDone: { color: colors.muted2, textDecorationLine: 'line-through' },
+  stepWhen: { fontSize: fs(12), fontFamily: ff('600'), color: colors.green },
   currentRow: { alignItems: 'center', gap: 9 },
   startHereTag: { fontSize: fs(10), fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
   todayChip: { fontSize: fs(11), fontFamily: ff('700'), color: colors.green },

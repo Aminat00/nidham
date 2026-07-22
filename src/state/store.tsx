@@ -81,6 +81,8 @@ interface StoreValue {
   renameItem: (id: string, title: string) => void;
   /** Delete a captured item (guarded — seed items are never removed). */
   deleteItem: (id: string) => void;
+  /** Delete a whole project — the project item plus its milestones and steps. */
+  deleteProject: (id: string) => void;
   /** Suggested window for "Do today" right now. */
   suggestWindow: () => Window;
   /** Schedule an item into today, in a prayer window. */
@@ -441,6 +443,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setFeedIds((prev) => prev.filter((f) => f !== id));
   }, []);
 
+  const deleteProject = useCallback((projectId: string) => {
+    setItemsById((prev) => {
+      if (!prev[projectId]) return prev;
+      // project → milestones (parentId === projectId) → steps (parentId === milestoneId)
+      const kill = new Set<string>([projectId]);
+      for (const i of Object.values(prev)) if (i.parentId === projectId) kill.add(i.id);
+      for (const i of Object.values(prev)) if (i.parentId && kill.has(i.parentId)) kill.add(i.id);
+      const next: Record<string, Item> = {};
+      for (const [id, it] of Object.entries(prev)) if (!kill.has(id)) next[id] = it;
+      return next;
+    });
+    setFeedIds((prev) => prev.filter((f) => f !== projectId));
+  }, []);
+
   const scheduleToday = useCallback((id: string, window: Window = 'anytime') => {
     setItemsById((prev) => {
       const it = prev[id];
@@ -514,6 +530,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       scheduleItem,
       renameItem,
       deleteItem,
+      deleteProject,
       suggestWindow,
       scheduleToday,
       unschedule,
@@ -545,6 +562,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       scheduleItem,
       renameItem,
       deleteItem,
+      deleteProject,
       suggestWindow,
       scheduleToday,
       unschedule,
