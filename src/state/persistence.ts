@@ -19,6 +19,8 @@ export interface PersistedState {
   captures: Item[];
   /** Just-captured feed order. */
   feedIds: string[];
+  /** Seed-owned ids the user deleted — kept out of the rebuilt seed on reload. */
+  deletedIds?: string[];
 }
 
 export async function loadState(): Promise<PersistedState | null> {

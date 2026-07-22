@@ -107,6 +107,16 @@ export async function deleteAll(userId: string): Promise<void> {
   }
 }
 
+/** Delete specific rows for the user (a targeted delete, not a full reset). Best-effort. */
+export async function deleteItems(userId: string, ids: string[]): Promise<void> {
+  if (!supabase || ids.length === 0) return;
+  const { error } = await supabase.from('items').delete().eq('user_id', userId).in('id', ids);
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.warn('[itemsRepo] deleteItems failed —', error.message);
+  }
+}
+
 /** Upsert the full item set + feed order for the user. Best-effort. */
 export async function saveAll(userId: string, items: Item[], feedIds: string[]): Promise<void> {
   if (!supabase) return;

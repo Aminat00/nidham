@@ -26,7 +26,7 @@ import { addDays, dayDiff } from '../utils/dates';
 import { loadState, saveState, clearState, PersistedState } from './persistence';
 import { usePrayerTimes } from '../data/PrayerTimesContext';
 import { useAuth } from './auth';
-import { fetchAll, saveAll, deleteAll } from '../data/itemsRepo';
+import { fetchAll, saveAll, deleteAll, deleteItems } from '../data/itemsRepo';
 import { addMinutes, windowBaseTime, suggestCurrentWindow, scheduledFields, captureTaskToItem, type Times } from './schedule';
 import type { CaptureTask } from '../agent/captureContract';
 
@@ -111,6 +111,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const [itemsById, setItemsById] = useState<Record<string, Item>>({});
   const [feedIds, setFeedIds] = useState<string[]>([]);
+  // Seed-owned ids the user has deleted — kept out of the seed on every rebuild.
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [phase, setPhase] = useState<Phase>('idle');
   const [summary, setSummary] = useState<string | null>(null);
   const [lastPushedId, setLastPushedId] = useState<string | null>(null);
@@ -122,6 +124,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   itemsRef.current = itemsById;
   const feedIdsRef = useRef<string[]>([]);
   feedIdsRef.current = feedIds;
+  const deletedIdsRef = useRef<Set<string>>(new Set());
+  deletedIdsRef.current = deletedIds;
   const hydratedRef = useRef(false);
   const langInitRef = useRef(false);
   const cloudPulledRef = useRef<string | null>(null);
@@ -144,6 +148,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           if (byId[id]) byId[id] = { ...byId[id], ...persisted.overrides[id] };
         }
         for (const c of persisted.captures) byId[c.id] = c;
+        const deleted = new Set(persisted.deletedIds ?? []);
+        for (const id of deleted) delete byId[id]; // keep deleted seed items gone
+        setDeletedIds(deleted);
         setFeedIds(persisted.feedIds);
       } else {
         setFeedIds(capturedIds);
@@ -170,7 +177,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (remote && remote.items.length) {
         setItemsById((prev) => {
           const next = { ...prev };
-          for (const it of remote.items) next[it.id] = it; // remote wins
+          // remote wins — except for seed items the user has deleted (tombstoned).
+          for (const it of remote.items) if (!deletedIdsRef.current.has(it.id)) next[it.id] = it;
           return next;
         });
         if (remote.feedIds.length) setFeedIds(remote.feedIds);
@@ -195,6 +203,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const { items } = buildSeed(lang);
     const next: Record<string, Item> = {};
     for (const item of items) {
+      if (deletedIdsRef.current.has(item.id)) continue; // stay deleted across a reseed
       const prior = snapshot[item.id];
       next[item.id] = prior ? { ...item, status: prior.status, day: prior.day } : item;
     }
@@ -215,7 +224,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (SEED_IDS.has(it.id)) overrides[it.id] = { status: it.status, day: it.day };
       else captures.push(it);
     }
-    saveState({ overrides, captures, feedIds });
+    saveState({ overrides, captures, feedIds, deletedIds: [...deletedIds] });
 
     if (userId && cloudPulledRef.current === userId) {
       if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
@@ -223,7 +232,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         saveAll(userId, Object.values(itemsById), feedIds);
       }, 600);
     }
-  }, [itemsById, feedIds, userId]);
+  }, [itemsById, feedIds, deletedIds, userId]);
 
   const upsertItems = useCallback((incoming: Item[]) => {
     setItemsById((prev) => {
@@ -432,8 +441,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setItemsById((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], title: clean } } : prev));
   }, []);
 
+  /** Persist a deletion everywhere: tombstone seed ids, and remove the rows from the cloud. */
+  const commitDeletion = useCallback((ids: string[]) => {
+    const seed = ids.filter((id) => SEED_IDS.has(id));
+    if (seed.length) setDeletedIds((prev) => { const next = new Set(prev); for (const id of seed) next.add(id); return next; });
+    if (userId && cloudPulledRef.current === userId) deleteItems(userId, ids);
+  }, [userId]);
+
   const deleteItem = useCallback((id: string) => {
-    if (SEED_IDS.has(id)) return;
+    if (itemsRef.current[id]?.category === 'prayer') return; // prayers are never deletable
     setItemsById((prev) => {
       if (!prev[id]) return prev;
       const next = { ...prev };
@@ -441,21 +457,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
     setFeedIds((prev) => prev.filter((f) => f !== id));
-  }, []);
+    commitDeletion([id]);
+  }, [commitDeletion]);
 
   const deleteProject = useCallback((projectId: string) => {
+    let killed: string[] = [];
     setItemsById((prev) => {
       if (!prev[projectId]) return prev;
       // project → milestones (parentId === projectId) → steps (parentId === milestoneId)
       const kill = new Set<string>([projectId]);
       for (const i of Object.values(prev)) if (i.parentId === projectId) kill.add(i.id);
       for (const i of Object.values(prev)) if (i.parentId && kill.has(i.parentId)) kill.add(i.id);
+      killed = [...kill];
       const next: Record<string, Item> = {};
       for (const [id, it] of Object.entries(prev)) if (!kill.has(id)) next[id] = it;
       return next;
     });
     setFeedIds((prev) => prev.filter((f) => f !== projectId));
-  }, []);
+    commitDeletion(killed);
+  }, [commitDeletion]);
 
   const scheduleToday = useCallback((id: string, window: Window = 'anytime') => {
     setItemsById((prev) => {
@@ -490,6 +510,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     for (const it of items) byId[it.id] = it;
     setItemsById(byId);
     setFeedIds(capturedIds);
+    setDeletedIds(new Set());
     setSummary(null);
     setPhase('idle');
     setLastPushedId(null);
