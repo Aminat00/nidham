@@ -1,11 +1,13 @@
 /**
- * Screen 3 — Tasks. The categorized backlog: your Projects on top (with progress + next
- * action), then loose tasks grouped by life area. Nothing here is forced onto Today —
- * each task has a "Do today" that places it in a prayer window. Layout mirrors the
- * Nidham design language (cream, hairlines, forest green).
+ * Screen 3 — Tasks. The full task view so nothing goes out of sight:
+ *   • a category filter bar (All + each life area present)
+ *   • SCHEDULED — dated tasks grouped by time (Overdue · Today · Tomorrow · This week · Later)
+ *   • BACKLOG — undated tasks grouped by life area (each has "Do today")
+ *   • PROJECTS — goals with progress + next action
+ * Category shows as a colored chip on each scheduled row; time is the primary axis.
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { ProfileButton } from '../components/ProfileButton';
 import { WindowPicker } from '../components/WindowPicker';
@@ -13,15 +15,48 @@ import { amiri, colors, ff, fs, radius, space } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
 import { useStore } from '../state/store';
-import { AREA_LABEL, t as fmt, digits } from '../i18n/strings';
-import type { Window } from '../types/item';
+import type { TimeBucket } from '../state/store';
+import { AREA_LABEL, AREA_COLOR, WEEKDAYS, WINDOW_WORD, t as fmt, digits } from '../i18n/strings';
+import { weekdayIndex } from '../utils/dates';
+import { prayerName, PrayerKey } from '../data/prayers';
+import type { Area, Item, Window } from '../types/item';
+
+const PRAYER_WINDOWS = new Set<Window>(['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']);
 
 export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOpenProfile: () => void; onOpenProject: (id: string) => void; onOpenTask: (id: string) => void }) {
   const { strings, isRTL, lang } = useI18n();
-  const { projects, backlogByArea, progressOf, currentStepOf, scheduleToday } = useStore();
+  const { projects, backlogByArea, datedTasksByHorizon, progressOf, currentStepOf, scheduleToday } = useStore();
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Area | 'all'>('all');
 
-  const empty = projects.length === 0 && backlogByArea.length === 0;
+  // Areas present anywhere (dated + backlog) → the filter chips.
+  const areas = useMemo(() => {
+    const set = new Set<Area>();
+    datedTasksByHorizon.forEach((g) => g.items.forEach((it) => it.area && set.add(it.area)));
+    backlogByArea.forEach((g) => set.add(g.area));
+    const ORDER: Area[] = ['chore', 'admin', 'personal', 'self-dev', 'spiritual', 'errand'];
+    return ORDER.filter((a) => set.has(a));
+  }, [datedTasksByHorizon, backlogByArea]);
+
+  const bucketLabel = (b: TimeBucket): string =>
+    ({ overdue: strings.overdue, today: strings.today, tomorrow: strings.tomorrow, week: strings.thisWeek, later: strings.later }[b]);
+
+  const whenLabel = (it: Item): string => {
+    const wd = it.day ? WEEKDAYS[lang][weekdayIndex(it.day)] : '';
+    const w = PRAYER_WINDOWS.has(it.window)
+      ? prayerName(it.window as PrayerKey, lang)
+      : WINDOW_WORD[lang][it.window as 'morning' | 'afternoon' | 'evening' | 'anytime'] ?? '';
+    const time = it.time ? ` · ${digits(it.time, lang)}` : '';
+    return `${wd} · ${w}${time}`;
+  };
+
+  const keep = (it: Item) => filter === 'all' || it.area === filter;
+  const dated = datedTasksByHorizon
+    .map((g) => ({ bucket: g.bucket, items: g.items.filter(keep) }))
+    .filter((g) => g.items.length > 0);
+  const backlog = backlogByArea.filter((g) => filter === 'all' || g.area === filter);
+
+  const empty = projects.length === 0 && backlogByArea.length === 0 && datedTasksByHorizon.length === 0;
 
   const pick = (w: Window) => {
     if (pickerFor) scheduleToday(pickerFor, w);
@@ -43,10 +78,72 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
 
       {empty && <Text style={[styles.empty, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{strings.emptyTasks}</Text>}
 
-      {/* Projects */}
+      {/* Category filter bar */}
+      {areas.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterBar, { flexDirection: row(isRTL) }]}>
+          <FilterChip label={strings.allAreas} active={filter === 'all'} onPress={() => setFilter('all')} />
+          {areas.map((a) => (
+            <FilterChip key={a} label={AREA_LABEL[lang][a]} color={AREA_COLOR[a]} active={filter === a} onPress={() => setFilter(filter === a ? 'all' : a)} />
+          ))}
+        </ScrollView>
+      )}
+
+      {/* SCHEDULED — by time horizon */}
+      {dated.length > 0 && (
+        <View style={styles.zone}>
+          <Text style={[styles.zoneLabel, { textAlign: textStart(isRTL) }]}>{strings.upcomingSection.toUpperCase()}</Text>
+          {dated.map((g) => (
+            <View key={g.bucket} style={styles.section}>
+              <Text style={[styles.bucketLabel, { textAlign: textStart(isRTL) }]}>{bucketLabel(g.bucket)}</Text>
+              <View style={styles.group}>
+                {g.items.map((it) => (
+                  <Pressable key={it.id} style={[styles.datedRow]} onPress={() => onOpenTask(it.id)} accessibilityRole="button" accessibilityLabel={it.title}>
+                    <Text style={[styles.taskTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={2}>{it.title}</Text>
+                    <View style={[styles.metaRow, { flexDirection: row(isRTL) }]}>
+                      {it.area ? (
+                        <View style={[styles.chip, { flexDirection: row(isRTL) }]}>
+                          <View style={[styles.chipDot, { backgroundColor: AREA_COLOR[it.area] }]} />
+                          <Text style={styles.chipText}>{AREA_LABEL[lang][it.area]}</Text>
+                        </View>
+                      ) : null}
+                      <Text style={[styles.whenText, { textAlign: textStart(isRTL) }]}>{whenLabel(it)}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* BACKLOG — undated, by area */}
+      {backlog.length > 0 && (
+        <View style={styles.zone}>
+          <Text style={[styles.zoneLabel, { textAlign: textStart(isRTL) }]}>{strings.backlogSection.toUpperCase()}</Text>
+          {backlog.map((group) => (
+            <View key={group.area} style={styles.section}>
+              <Text style={[styles.bucketLabel, { textAlign: textStart(isRTL) }]}>{AREA_LABEL[lang][group.area]}</Text>
+              <View style={styles.group}>
+                {group.items.map((it) => (
+                  <View key={it.id} style={[styles.taskRow, { flexDirection: row(isRTL) }]}>
+                    <Pressable style={styles.taskTitleBtn} onPress={() => onOpenTask(it.id)} accessibilityRole="button" accessibilityLabel={it.title}>
+                      <Text style={[styles.taskTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={2}>{it.title}</Text>
+                    </Pressable>
+                    <Pressable style={styles.doToday} onPress={() => setPickerFor(it.id)} accessibilityRole="button">
+                      <Text style={styles.doTodayText}>{strings.doToday}</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* PROJECTS */}
       {projects.length > 0 && (
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { textAlign: textStart(isRTL) }]}>{strings.projectsSection.toUpperCase()}</Text>
+        <View style={styles.zone}>
+          <Text style={[styles.zoneLabel, { textAlign: textStart(isRTL) }]}>{strings.projectsSection.toUpperCase()}</Text>
           <View style={styles.group}>
             {projects.map((p) => {
               const prog = progressOf(p.id);
@@ -71,27 +168,17 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
         </View>
       )}
 
-      {/* Loose tasks by area */}
-      {backlogByArea.map((group) => (
-        <View key={group.area} style={styles.section}>
-          <Text style={[styles.sectionLabel, { textAlign: textStart(isRTL) }]}>{AREA_LABEL[lang][group.area].toUpperCase()}</Text>
-          <View style={styles.group}>
-            {group.items.map((it) => (
-              <View key={it.id} style={[styles.taskRow, { flexDirection: row(isRTL) }]}>
-                <Pressable style={styles.taskTitleBtn} onPress={() => onOpenTask(it.id)} accessibilityRole="button" accessibilityLabel={it.title}>
-                  <Text style={[styles.taskTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]} numberOfLines={2}>{it.title}</Text>
-                </Pressable>
-                <Pressable style={styles.doToday} onPress={() => { setPickerFor(it.id); }} accessibilityRole="button">
-                  <Text style={styles.doTodayText}>{strings.doToday}</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        </View>
-      ))}
-
       <WindowPicker visible={pickerFor !== null} onSelect={pick} onClose={() => setPickerFor(null)} />
     </ScrollView>
+  );
+}
+
+function FilterChip({ label, active, color, onPress }: { label: string; active: boolean; color?: string; onPress: () => void }) {
+  return (
+    <Pressable style={[styles.filterChip, active && styles.filterChipOn]} onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: active }}>
+      {color ? <View style={[styles.chipDot, { backgroundColor: color }]} /> : null}
+      <Text style={[styles.filterChipText, active && styles.filterChipTextOn]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -105,18 +192,36 @@ const styles = StyleSheet.create({
   titleScript: { fontFamily: amiri(), fontSize: fs(19), color: colors.green },
   intro: { fontSize: fs(12.5), fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320 },
   empty: { fontSize: fs(13.5), fontFamily: ff('500'), color: colors.muted, lineHeight: 20, paddingHorizontal: 2 },
-  section: { gap: 9 },
-  sectionLabel: { fontSize: fs(11), fontFamily: ff('700'), color: colors.muted2, letterSpacing: 0.7, paddingHorizontal: 2 },
+
+  filterBar: { gap: 8, paddingHorizontal: 2, paddingVertical: 1 },
+  filterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: colors.card },
+  filterChipOn: { backgroundColor: colors.tint, borderColor: colors.green },
+  filterChipText: { fontSize: fs(12), fontFamily: ff('600'), color: colors.muted },
+  filterChipTextOn: { color: colors.green, fontFamily: ff('700') },
+
+  zone: { gap: 12 },
+  zoneLabel: { fontSize: fs(11), fontFamily: ff('700'), color: colors.muted2, letterSpacing: 0.7, paddingHorizontal: 2 },
+  section: { gap: 8 },
+  bucketLabel: { fontSize: fs(12.5), fontFamily: ff('700'), color: colors.ink, paddingHorizontal: 2 },
   group: { gap: 9 },
+
+  datedRow: { gap: 7, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 12 },
+  metaRow: { alignItems: 'center', gap: 9 },
+  chip: { alignItems: 'center', gap: 6, backgroundColor: colors.cream, borderRadius: radius.chip, paddingHorizontal: 8, paddingVertical: 3 },
+  chipDot: { width: 8, height: 8, borderRadius: 4 },
+  chipText: { fontSize: fs(10.5), fontFamily: ff('700'), color: colors.muted, letterSpacing: 0.2 },
+  whenText: { flex: 1, fontSize: fs(11.5), fontFamily: ff('600'), color: colors.muted2 },
+
+  taskRow: { alignItems: 'center', justifyContent: 'space-between', gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 13 },
+  taskTitleBtn: { flex: 1 },
+  taskTitle: { fontSize: fs(14.5), fontFamily: ff('500'), color: colors.ink },
+  doToday: { borderWidth: 1, borderColor: colors.green, borderRadius: radius.inner, paddingHorizontal: 12, paddingVertical: 7 },
+  doTodayText: { fontSize: fs(12), fontFamily: ff('700'), color: colors.green },
+
   projectCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.cardLg, paddingHorizontal: 15, paddingVertical: 14, gap: 6 },
   projectTitle: { fontSize: fs(16), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.2 },
   projectMeta: { fontSize: fs(12), fontFamily: ff('500'), color: colors.muted },
   nextRow: { alignItems: 'center', gap: 8, marginTop: 2 },
   startHereTag: { fontSize: fs(10), fontFamily: ff('700'), color: colors.white, backgroundColor: colors.green, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
   nextText: { flex: 1, fontSize: fs(13.5), fontFamily: ff('600'), color: colors.ink },
-  taskRow: { alignItems: 'center', justifyContent: 'space-between', gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 13 },
-  taskTitleBtn: { flex: 1 },
-  taskTitle: { fontSize: fs(14.5), fontFamily: ff('500'), color: colors.ink },
-  doToday: { borderWidth: 1, borderColor: colors.green, borderRadius: radius.inner, paddingHorizontal: 12, paddingVertical: 7 },
-  doTodayText: { fontSize: fs(12), fontFamily: ff('700'), color: colors.green },
 });

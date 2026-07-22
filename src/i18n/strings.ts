@@ -61,6 +61,13 @@ export interface Strings {
   onMilestone: string; // "on {name}"
   emptyTasks: string;
   reschedule: string;
+  // Tasks — time buckets + filter
+  upcomingSection: string;
+  backlogSection: string;
+  overdue: string;
+  thisWeek: string;
+  later: string;
+  allAreas: string;
   // Project interview
   planReady: string;
   projectCreated: string;
@@ -128,6 +135,12 @@ export const UI: Record<Lang, Strings> = {
     onMilestone: 'on {name}',
     emptyTasks: 'Nothing here yet — talk to Nidham to capture something.',
     reschedule: 'Reschedule',
+    upcomingSection: 'Scheduled',
+    backlogSection: 'Backlog',
+    overdue: 'Overdue',
+    thisWeek: 'This week',
+    later: 'Later',
+    allAreas: 'All',
     planReady: 'Here’s a plan — start with the first step.',
     projectCreated: 'Added to Projects.',
     answerPlaceholder: 'Type your answer…',
@@ -189,6 +202,12 @@ export const UI: Record<Lang, Strings> = {
     onMilestone: '{name} aşamasında',
     emptyTasks: 'Henüz bir şey yok — yakalamak için Nidham’la konuş.',
     reschedule: 'Yeniden planla',
+    upcomingSection: 'Planlanan',
+    backlogSection: 'Bekleyen',
+    overdue: 'Gecikmiş',
+    thisWeek: 'Bu hafta',
+    later: 'Sonra',
+    allAreas: 'Hepsi',
     planReady: 'İşte bir plan — ilk adımla başla.',
     projectCreated: 'Projelere eklendi.',
     answerPlaceholder: 'Cevabını yaz…',
@@ -250,6 +269,12 @@ export const UI: Record<Lang, Strings> = {
     onMilestone: 'عند {name}',
     emptyTasks: 'لا شيء بعد — تحدّث إلى نظام لتلتقط شيئًا.',
     reschedule: 'إعادة الجدولة',
+    upcomingSection: 'مجدول',
+    backlogSection: 'قائمة الانتظار',
+    overdue: 'متأخر',
+    thisWeek: 'هذا الأسبوع',
+    later: 'لاحقًا',
+    allAreas: 'الكل',
     planReady: 'إليك خطة — ابدأ بالخطوة الأولى.',
     projectCreated: 'أُضيف إلى المشاريع.',
     answerPlaceholder: 'اكتب إجابتك…',
@@ -278,6 +303,17 @@ export const AREA_LABEL: Record<Lang, Record<import('../types/item').Area, strin
   en: { chore: 'Chores', admin: 'Admin', personal: 'Personal', 'self-dev': 'Self-dev', spiritual: 'Spiritual', errand: 'Errands', project: 'Projects' },
   tr: { chore: 'Ev işleri', admin: 'İdari', personal: 'Kişisel', 'self-dev': 'Gelişim', spiritual: 'Manevi', errand: 'Ayak işleri', project: 'Projeler' },
   ar: { chore: 'أعمال منزلية', admin: 'إداري', personal: 'شخصي', 'self-dev': 'تطوير الذات', spiritual: 'روحاني', errand: 'مشاوير', project: 'مشاريع' },
+};
+
+/** Calm, muted dot color per life area — for the category chip on task rows. */
+export const AREA_COLOR: Record<import('../types/item').Area, string> = {
+  chore: '#9C8B4E',      // olive gold
+  admin: '#6E8CA0',      // slate blue
+  personal: '#B27A6B',   // dusty rose
+  'self-dev': '#5E8C7B', // sage teal
+  spiritual: '#2D5A4A',  // brand green
+  errand: '#B08A57',     // tan
+  project: '#8A8275',    // muted (rarely used here)
 };
 
 /** Fill `{name}`-style placeholders. */

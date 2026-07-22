@@ -22,7 +22,7 @@ import { runAgent } from '../agent/runAgent';
 import type { ProjectPlan } from '../agent/projectContract';
 import { currentStep, projectProgress, milestonesOf, stepsOf, type ProjectProgress } from '../data/projects';
 import { DEMO_NOW_ISO, DEMO_TODAY, PRAYER_TIMES } from '../data/demo';
-import { addDays } from '../utils/dates';
+import { addDays, dayDiff } from '../utils/dates';
 import { loadState, saveState, clearState, PersistedState } from './persistence';
 import { usePrayerTimes } from '../data/PrayerTimesContext';
 import { useAuth } from './auth';
@@ -37,6 +37,9 @@ const MIN_THINKING_MS = 1500;
 const SEED_IDS = new Set(buildSeed('en').items.map((i) => i.id));
 
 type Phase = 'idle' | 'thinking';
+
+/** Time horizon buckets for scheduled tasks on the Tasks screen. */
+export type TimeBucket = 'overdue' | 'today' | 'tomorrow' | 'week' | 'later';
 
 interface StoreValue {
   today: string;
@@ -61,6 +64,8 @@ interface StoreValue {
   projects: Item[];
   /** Unscheduled loose tasks grouped by life area, in a stable area order. */
   backlogByArea: Array<{ area: Area; items: Item[] }>;
+  /** Scheduled loose tasks grouped by time horizon (overdue → later). */
+  datedTasksByHorizon: Array<{ bucket: TimeBucket; items: Item[] }>;
   /** The one next action of a project (derived). */
   currentStepOf: (projectId: string) => Item | undefined;
   progressOf: (projectId: string) => ProjectProgress;
@@ -348,6 +353,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return AREA_ORDER.filter((a) => groups.has(a)).map((a) => ({ area: a, items: groups.get(a) as Item[] }));
   }, [itemsById]);
 
+  // Scheduled loose tasks (have a `day`), grouped by time horizon so nothing "disappears"
+  // once it's given a future day. Overdue first, then Today → Later; each bucket sorted by day.
+  const datedTasksByHorizon = useMemo(() => {
+    const dated = Object.values(itemsById).filter(
+      (i) => i.day && i.status !== 'done' && (i.category === 'task' || i.category === 'errand'),
+    );
+    const bucketOf = (day: string): TimeBucket => {
+      const d = dayDiff(DEMO_TODAY, day);
+      if (d < 0) return 'overdue';
+      if (d === 0) return 'today';
+      if (d === 1) return 'tomorrow';
+      if (d <= 7) return 'week';
+      return 'later';
+    };
+    const ORDER: TimeBucket[] = ['overdue', 'today', 'tomorrow', 'week', 'later'];
+    const groups = new Map<TimeBucket, Item[]>();
+    for (const it of dated) {
+      const b = bucketOf(it.day as string);
+      const arr = groups.get(b) ?? [];
+      arr.push(it);
+      groups.set(b, arr);
+    }
+    return ORDER.filter((b) => groups.has(b)).map((b) => ({
+      bucket: b,
+      items: (groups.get(b) as Item[]).sort((a, z) =>
+        ((a.day as string) + a.sortTime).localeCompare((z.day as string) + z.sortTime)),
+    }));
+  }, [itemsById]);
+
   const currentStepOf = useCallback((projectId: string) => currentStep(projectId, itemsById), [itemsById]);
   const progressOf = useCallback((projectId: string) => projectProgress(projectId, itemsById), [itemsById]);
   const projectMilestones = useCallback((projectId: string) => milestonesOf(projectId, itemsById), [itemsById]);
@@ -468,6 +502,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       canUndoPush: lastPushedId !== null,
       projects,
       backlogByArea,
+      datedTasksByHorizon,
       currentStepOf,
       progressOf,
       projectMilestones,
@@ -498,6 +533,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       lastPushedId,
       projects,
       backlogByArea,
+      datedTasksByHorizon,
       currentStepOf,
       progressOf,
       projectMilestones,
