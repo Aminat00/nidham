@@ -173,12 +173,7 @@ export function ProfileScreen({ onClose }: { onClose: () => void }) {
           </View>
         </View>
 
-        {/* Reset — clean slate (two-tap confirm) */}
-        <Pressable onPress={doReset} style={styles.resetButton} accessibilityRole="button">
-          <Text style={[styles.resetText, confirmReset && styles.resetTextConfirm]}>
-            {confirmReset ? t.resetConfirm : t.reset}
-          </Text>
-        </Pressable>
+        {/* Reset all data — hidden for now (kept in code, not surfaced in the UI). */}
       </View>
     </SafeAreaView>
   );
