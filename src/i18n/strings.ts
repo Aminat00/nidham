@@ -64,6 +64,7 @@ export interface Strings {
   stepsOfLabel: string; // "{done} / {total} steps"
   onMilestone: string; // "on {name}"
   emptyTasks: string;
+  emptyTasksTitle: string;
   reschedule: string;
   // Tasks — time buckets + filter
   upcomingSection: string;
@@ -149,7 +150,8 @@ export const UI: Record<Lang, Strings> = {
     sentToToday: 'Added to today.',
     stepsOfLabel: '{done} / {total} steps',
     onMilestone: 'on {name}',
-    emptyTasks: 'Nothing here yet — talk to Nidham to capture something.',
+    emptyTasks: 'Capture a task or a goal with the ＋ button — it lands here.',
+    emptyTasksTitle: 'No tasks yet',
     reschedule: 'Reschedule',
     upcomingSection: 'Scheduled',
     backlogSection: 'Backlog',
@@ -227,7 +229,8 @@ export const UI: Record<Lang, Strings> = {
     sentToToday: 'Bugüne eklendi.',
     stepsOfLabel: '{done} / {total} adım',
     onMilestone: '{name} aşamasında',
-    emptyTasks: 'Henüz bir şey yok — yakalamak için Nidham’la konuş.',
+    emptyTasks: '＋ ile bir görev ya da hedef yakala — burada belirir.',
+    emptyTasksTitle: 'Henüz görev yok',
     reschedule: 'Yeniden planla',
     upcomingSection: 'Planlanan',
     backlogSection: 'Bekleyen',
@@ -305,7 +308,8 @@ export const UI: Record<Lang, Strings> = {
     sentToToday: 'أُضيفت إلى اليوم.',
     stepsOfLabel: '{done} / {total} خطوات',
     onMilestone: 'عند {name}',
-    emptyTasks: 'لا شيء بعد — تحدّث إلى نظام لتلتقط شيئًا.',
+    emptyTasks: 'التقط مهمة أو هدفاً بزر ＋ — سيظهر هنا.',
+    emptyTasksTitle: 'لا مهام بعد',
     reschedule: 'إعادة الجدولة',
     upcomingSection: 'مجدول',
     backlogSection: 'قائمة الانتظار',

@@ -11,6 +11,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { ProfileButton } from '../components/ProfileButton';
 import { WindowPicker } from '../components/WindowPicker';
+import { ListIcon } from '../components/Icons';
 import { amiri, colors, ff, fs, radius, space } from '../theme/tokens';
 import { row, textStart, writingDirection } from '../theme/rtl';
 import { useI18n } from '../i18n/I18nContext';
@@ -78,7 +79,13 @@ export function TasksScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOp
         <Text style={[styles.intro, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{strings.tasksIntro}</Text>
       </View>
 
-      {empty && <Text style={[styles.empty, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{strings.emptyTasks}</Text>}
+      {empty && (
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIcon}><ListIcon size={26} color={colors.green} /></View>
+          <Text style={styles.emptyTitle}>{strings.emptyTasksTitle}</Text>
+          <Text style={[styles.empty, { textAlign: 'center', writingDirection: writingDirection(isRTL) }]}>{strings.emptyTasks}</Text>
+        </View>
+      )}
 
       {/* Category filter bar */}
       {areas.length > 0 && (
@@ -212,7 +219,10 @@ const styles = StyleSheet.create({
   title: { fontSize: fs(22), fontFamily: ff('700'), color: colors.ink, letterSpacing: -0.3 },
   titleScript: { fontFamily: amiri(), fontSize: fs(19), color: colors.green },
   intro: { fontSize: fs(12.5), fontFamily: ff('500'), color: colors.muted, lineHeight: 19, maxWidth: 320 },
-  empty: { fontSize: fs(13.5), fontFamily: ff('500'), color: colors.muted, lineHeight: 20, paddingHorizontal: 2 },
+  emptyState: { alignItems: 'center', gap: 10, paddingHorizontal: 24, paddingVertical: 56 },
+  emptyIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontSize: fs(16), fontFamily: ff('800'), color: colors.ink, letterSpacing: -0.2 },
+  empty: { fontSize: fs(13), fontFamily: ff('500'), color: colors.muted, lineHeight: 20, maxWidth: 280 },
 
   filterBar: { gap: 8, paddingHorizontal: 2, paddingVertical: 1 },
   filterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: colors.card },
