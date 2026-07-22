@@ -25,12 +25,13 @@ import { runScheduleAgent } from '../agent/runScheduleAgent';
 import type { ConversationTurn } from '../agent/projectContract';
 import type { CaptureTask } from '../agent/captureContract';
 import type { Window } from '../types/item';
-import { NOW_ISO, PRAYER_TIMES } from '../data/demo';
+import { NOW_ISO, TODAY, PRAYER_TIMES } from '../data/demo';
+import { scheduleChipLabel } from '../utils/schedule';
 
 type Entry =
   | { kind: 'user'; text: string }
   | { kind: 'agent'; text: string }
-  | { kind: 'task'; taskId: string; title: string; scheduled: boolean }
+  | { kind: 'task'; taskId: string; title: string; whenText: string }
   | { kind: 'plan'; projectId: string; title: string; firstStep?: string };
 
 /** Max answers before we force a plan (matches the agent's own cap). */
@@ -38,7 +39,7 @@ const MAX_ANSWERS = 3;
 
 export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { onOpenProfile: () => void; onOpenProject: (id: string) => void; onOpenTask: (id: string) => void }) {
   const { strings, isRTL, lang } = useI18n();
-  const { addCaptureTask, createProject, scheduledItems, scheduleItem } = useStore();
+  const { addCaptureTask, createProject, scheduledItems, scheduleItem, getItem } = useStore();
   const { live } = usePrayerTimes();
   const times = live?.times ?? PRAYER_TIMES;
 
@@ -68,15 +69,17 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
   };
 
   // Loose task: only call the scheduler when there's a signal (timeContext or urgency now/today).
-  const scheduleLooseTask = async (taskId: string, task: CaptureTask) => {
+  // Returns the day it actually landed on, or null if it stayed in the backlog.
+  const scheduleLooseTask = async (taskId: string, task: CaptureTask): Promise<string | null> => {
     const hasSignal = !!task.timeContext || task.urgency === 'now' || task.urgency === 'today';
-    if (!hasSignal) return;
+    if (!hasSignal) return null;
     const { placements } = await runScheduleAgent({
       subtasks: [{ id: taskId, title: task.title, energy: task.energy, timeContext: task.timeContext, urgency: task.urgency }],
       context: buildContext(),
       spread: false,
     });
     applyPlacements(placements);
+    return placements.find((p) => p.subtaskId === taskId)?.day ?? null;
   };
 
   const runTurn = async (convo: ConversationTurn[]) => {
@@ -139,11 +142,19 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
 
       if (res.kind === 'task') {
         const id = addCaptureTask(res.task);
-        await scheduleLooseTask(id, res.task);
+        const placedDay = await scheduleLooseTask(id, res.task);
+        // Report the REAL outcome: today, the actual day it landed on, or parked in the backlog.
+        const item = getItem(id);
+        const whenText =
+          placedDay && item?.day
+            ? placedDay === TODAY
+              ? strings.sentToToday
+              : scheduleChipLabel(item, lang, TODAY)
+            : strings.savedToTasks;
         setThread((t) => [
           ...t,
           { kind: 'user', text: trimmed },
-          { kind: 'task', taskId: id, title: res.task.title, scheduled: !!res.task.scheduleToday },
+          { kind: 'task', taskId: id, title: res.task.title, whenText },
         ]);
       } else {
         // route → it's a project. Hand the goal straight to the Project agent (the AI Agent),
@@ -204,7 +215,7 @@ export function CaptureScreen({ onOpenProfile, onOpenProject, onOpenTask }: { on
                 <View style={styles.check}><CheckIcon size={12} color={colors.white} /></View>
                 <View style={styles.landedBody}>
                   <Text style={[styles.landedTitle, { textAlign: textStart(isRTL), writingDirection: writingDirection(isRTL) }]}>{e.title}</Text>
-                  <Text style={[styles.landedMeta, { textAlign: textStart(isRTL) }]}>{e.scheduled ? strings.sentToToday : strings.savedToTasks}</Text>
+                  <Text style={[styles.landedMeta, { textAlign: textStart(isRTL) }]}>{e.whenText}</Text>
                 </View>
               </Pressable>
             ) : (
