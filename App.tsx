@@ -41,7 +41,7 @@ function AppInner() {
     <View style={styles.root}>
       <View style={[styles.body, { paddingTop: insets.top }]}>
         {screen === 'today' ? (
-          <TodayScreen onOpenProfile={openProfile} />
+          <TodayScreen onOpenProfile={openProfile} onOpenTask={openTask} />
         ) : screen === 'tasks' ? (
           <TasksScreen onOpenProfile={openProfile} onOpenProject={openProject} onOpenTask={openTask} />
         ) : (

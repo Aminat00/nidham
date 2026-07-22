@@ -97,6 +97,30 @@ function PrayerRow({ item, time, isCurrent }: { item: Item; time: string; isCurr
   );
 }
 
+/** A secondary prayer (witr) rendered inside a prayer's block — indented, with a checkbox. */
+function SubPrayerRow({ item, time }: { item: Item; time: string }) {
+  const { lang, isRTL } = useI18n();
+  const { toggleDone } = useStore();
+  const key = prayerKeyFromId(item.id);
+  const done = item.status === 'done';
+  if (!key) return null;
+  const script = prayerScript(key, lang);
+  return (
+    <View style={[styles.subPrayerRow, { flexDirection: row(isRTL) }]}>
+      <View style={styles.gutter}>
+        <CheckBox checked={done} onPress={() => toggleDone(item.id)} size={17} />
+      </View>
+      <View style={[styles.subPrayerContent, { flexDirection: row(isRTL) }]}>
+        <View style={[styles.nameRow, { flexDirection: row(isRTL) }]}>
+          <Text style={[styles.subPrayerName, done && styles.mutedStrike]}>{prayerName(key, lang)}</Text>
+          {script && <Text style={styles.script}>{script}</Text>}
+        </View>
+        <Text style={styles.prayerTime}>{time}</Text>
+      </View>
+    </View>
+  );
+}
+
 /** Live prayer time for a key, or null when running on the pinned demo values. */
 function liveTimeFor(key: PrayerKey, live: LivePrayerData | null): string | null {
   if (!live) return null;
@@ -175,7 +199,7 @@ function deadlineLabel(item: Item, lang: Lang, today: string): string | null {
 }
 
 /** Dunya task card — grouped rows with checkbox, energy dot, urgent/deadline. */
-function DunyaCard({ items, onPush }: { items: Item[]; onPush: (id: string) => void }) {
+function DunyaCard({ items, onPush, onOpenTask }: { items: Item[]; onPush: (id: string) => void; onOpenTask: (id: string) => void }) {
   const { strings, lang, isRTL, today } = useDunya();
   const { toggleDone } = useStore();
   return (
@@ -187,6 +211,7 @@ function DunyaCard({ items, onPush }: { items: Item[]; onPush: (id: string) => v
         return (
           <Pressable
             key={item.id}
+            onPress={() => onOpenTask(item.id)}
             onLongPress={() => onPush(item.id)}
             delayLongPress={320}
             style={[styles.dunyaRow, { flexDirection: row(isRTL) }, i > 0 && styles.dunyaDivider]}
@@ -225,7 +250,7 @@ function useDunya() {
 
 const PLANNED = new Set<Item['category']>(['wird', 'task', 'errand', 'project', 'step']);
 
-export function TodayScreen({ onOpenProfile }: { onOpenProfile: () => void }) {
+export function TodayScreen({ onOpenProfile, onOpenTask }: { onOpenProfile: () => void; onOpenTask: (id: string) => void }) {
   const { strings, lang, isRTL } = useI18n();
   const store = useStore();
   const { live } = usePrayerTimes();
@@ -233,7 +258,9 @@ export function TodayScreen({ onOpenProfile }: { onOpenProfile: () => void }) {
   const { today, itemsForDay } = store;
 
   const dayItems = itemsForDay(today);
-  const prayers = useMemo(() => dayItems.filter((i) => i.category === 'prayer'), [dayItems]);
+  // Witr is grouped inside the ʿIshāʾ block (below), not a separate timeline anchor.
+  const prayers = useMemo(() => dayItems.filter((i) => i.category === 'prayer' && i.id !== 'p_witr'), [dayItems]);
+  const witr = useMemo(() => dayItems.find((i) => i.id === 'p_witr'), [dayItems]);
 
   // Which prayer's window is active now — from the real clock + live/seed times.
   const currentKey = currentPrayerKey(live?.times ?? PRAYER_TIMES);
@@ -292,11 +319,12 @@ export function TodayScreen({ onOpenProfile }: { onOpenProfile: () => void }) {
             return (
               <View key={p.id}>
                 <PrayerRow item={p} time={timeOf(p)} isCurrent={prayerKeyFromId(p.id) === currentKey} />
+                {prayerKeyFromId(p.id) === 'isha' && witr && <SubPrayerRow item={witr} time={timeOf(witr)} />}
                 {tesbihat && <TesbihatCard item={tesbihat} />}
                 {akhira.map((a) => (
                   <AkhiraRow key={a.id} item={a} />
                 ))}
-                {dunya.length > 0 && <DunyaCard items={dunya} onPush={handlePush} />}
+                {dunya.length > 0 && <DunyaCard items={dunya} onPush={handlePush} onOpenTask={onOpenTask} />}
               </View>
             );
           })}
@@ -355,6 +383,10 @@ const styles = StyleSheet.create({
 
   tesCard: { alignItems: 'center', gap: 11, marginBottom: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.tesBorder, borderRadius: 15, paddingVertical: 12, paddingHorizontal: 14 },
   tesLabel: { flex: 1, fontSize: fs(13), fontFamily: ff('600'), color: colors.ink },
+
+  subPrayerRow: { alignItems: 'center', gap: 11 },
+  subPrayerContent: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.hairline },
+  subPrayerName: { fontSize: fs(13.5), fontFamily: ff('700'), color: colors.slate },
 
   akhiraRow: { alignItems: 'flex-start', gap: 11 },
   gutter: { width: 30, alignItems: 'center', paddingTop: 9 },
