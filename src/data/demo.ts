@@ -7,17 +7,34 @@
 import type { Lang } from '../i18n/strings';
 import type { PrayerTimes } from '../agent/contract';
 
+const pad = (n: number) => String(n).padStart(2, '0');
+
 /** Local YYYY-MM-DD for a Date (no UTC shift). */
 function localDateISO(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/** "Today" is the real current day now — the app is live (auth-gated), not a frozen demo. */
-export const TODAY = localDateISO(new Date());
+/**
+ * Full ISO 8601 in the device's LOCAL timezone (with offset). Crucially, its date part
+ * equals localDateISO(d) — so anything that slices the date off `now` gets the same "today"
+ * the rest of the app uses, avoiding an off-by-one when local date ≠ UTC date.
+ */
+function localISO(d: Date): string {
+  const off = -d.getTimezoneOffset(); // minutes east of UTC
+  const sign = off >= 0 ? '+' : '-';
+  const oh = pad(Math.floor(Math.abs(off) / 60));
+  const om = pad(Math.abs(off) % 60);
+  return `${localDateISO(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${oh}:${om}`;
+}
 
-/** ISO 8601 "now" sent to the agent as context.now — the real current moment. */
-export const NOW_ISO = new Date().toISOString();
+// One instant, resolved at launch — TODAY and NOW_ISO always agree on the calendar day.
+const NOW = new Date();
+
+/** "Today" is the real current day (local). */
+export const TODAY = localDateISO(NOW);
+
+/** ISO 8601 "now" (local, with offset) sent to the agent as context.now. */
+export const NOW_ISO = localISO(NOW);
 
 export const USER_NAME = 'Yusuf';
 
